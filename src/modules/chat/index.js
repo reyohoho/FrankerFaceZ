@@ -270,6 +270,16 @@ export default class Chat extends Module {
 			}
 		});
 
+		this.settings.add('chat.rich.media-previews', {
+			default: true,
+			ui: {
+				path: 'Chat > Appearance >> Rich Content',
+				title: 'Display inline previews for direct media links.',
+				description: 'Shows image/video previews for direct media URLs, 7TV emote links, Imgur, and kappa.lol links posted in chat.',
+				component: 'setting-check-box'
+			}
+		});
+
 		this.settings.add('chat.rich.minimum-level', {
 			default: 0,
 			ui: {

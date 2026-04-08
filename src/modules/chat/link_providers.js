@@ -9,6 +9,12 @@ const NEW_CLIP_URL = /^(?:https?:\/\/)?(?:(?:www|m)\.)?twitch\.tv\/\w+\/clip\/([
 const VIDEO_URL = /^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/(?:\w+\/v|videos)\/(\w+)/;
 const USER_URL = /^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/([^/]+)$/;
 
+const DIRECT_IMAGE_URL = /^https?:\/\/[a-zA-Z0-9./\-_%@?&=:+~]+\.(?:jpg|jpeg|png|gif|bmp|webp|jfif|avif)(?:\?[^#]*)?(?:#.*)?$/i;
+const DIRECT_VIDEO_URL = /^https?:\/\/[a-zA-Z0-9./\-_%@?&=:+~]+\.(?:mp4|mov|webm)(?:\?[^#]*)?(?:#.*)?$/i;
+const SEVENTV_EMOTE_URL = /^https?:\/\/7tv\.app\/emotes\/([a-zA-Z0-9]+)/i;
+const IMGUR_URL = /^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]+)$/i;
+const KAPPA_LOL_URL = /^https?:\/\/(?:[a-zA-Z0-9]+\.)?kappa\.lol\/([a-zA-Z0-9]+)/i;
+
 const BAD_USERS = [
 	'directory', '_deck', 'p', 'downloads', 'jobs', 'turbo', 'settings', 'friends',
 	'subscriptions', 'inventory', 'wallet', 'store', 'drops', 'search', 'prime'
@@ -495,4 +501,185 @@ export const Video = {
 		};
 	}
 
+}
+
+
+// ============================================================================
+// Direct Image Links
+// ============================================================================
+
+export const DirectImage = {
+	type: 'direct-image',
+
+	test(url) {
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return null;
+		const match = DIRECT_IMAGE_URL.exec(url);
+		return match ? url : null;
+	},
+
+	async process(url) {
+		return {
+			v: 5,
+			short: {
+				type: 'header',
+				image: {type: 'image', url, sfw: true, aspect: 16/9},
+				title: url.split('/').pop()
+			},
+			full: [{
+				type: 'gallery',
+				items: [{
+					type: 'image',
+					url,
+					sfw: true
+				}]
+			}]
+		};
+	}
+}
+
+
+// ============================================================================
+// Direct Video Links
+// ============================================================================
+
+export const DirectVideo = {
+	type: 'direct-video',
+
+	test(url) {
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return null;
+		const match = DIRECT_VIDEO_URL.exec(url);
+		return match ? url : null;
+	},
+
+	async process(url) {
+		return {
+			v: 5,
+			short: {
+				type: 'header',
+				image: {type: 'icon', name: 'play'},
+				title: url.split('/').pop()
+			},
+			full: [{
+				type: 'gallery',
+				items: [{
+					type: 'player',
+					source: url,
+					aspect: 16 / 9,
+					content: {
+						type: 'overlay',
+						content: {type: 'style', size: '2', content: {type: 'icon', name: 'play'}},
+					}
+				}]
+			}]
+		};
+	}
+}
+
+
+// ============================================================================
+// 7TV Emote Links
+// ============================================================================
+
+export const SevenTVEmote = {
+	type: '7tv-emote',
+
+	test(url) {
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return null;
+		const match = SEVENTV_EMOTE_URL.exec(url);
+		return match ? match[1] : null;
+	},
+
+	async process(emoteId) {
+		const emoteUrl = `https://cdn.7tv.app/emote/${emoteId}/4x.webp`;
+		return {
+			v: 5,
+			short: {
+				type: 'header',
+				image: {type: 'image', url: emoteUrl, sfw: true, aspect: 1},
+				title: '7TV Emote'
+			},
+			full: [{
+				type: 'gallery',
+				items: [{
+					type: 'image',
+					url: emoteUrl,
+					sfw: true
+				}]
+			}]
+		};
+	}
+}
+
+
+// ============================================================================
+// Imgur Links
+// ============================================================================
+
+export const Imgur = {
+	type: 'imgur',
+
+	test(url) {
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return null;
+		const match = IMGUR_URL.exec(url);
+		return match ? match[1] : null;
+	},
+
+	async process(imgurId) {
+		const imageUrl = `https://i.imgur.com/${imgurId}.jpg`;
+		return {
+			v: 5,
+			short: {
+				type: 'header',
+				image: {type: 'image', url: imageUrl, sfw: true, aspect: 16/9},
+				title: 'Imgur',
+				subtitle: imgurId
+			},
+			full: [{
+				type: 'gallery',
+				items: [{
+					type: 'image',
+					url: imageUrl,
+					sfw: true
+				}]
+			}]
+		};
+	}
+}
+
+
+// ============================================================================
+// Kappa.lol Links
+// ============================================================================
+
+export const KappaLol = {
+	type: 'kappa-lol',
+
+	test(url) {
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return null;
+		return KAPPA_LOL_URL.test(url) ? url : null;
+	},
+
+	async process(url) {
+		return {
+			v: 5,
+			short: {
+				type: 'header',
+				image: {type: 'image', url, sfw: true, aspect: 16/9},
+				title: 'kappa.lol'
+			},
+			full: [{
+				type: 'gallery',
+				items: [{
+					type: 'image',
+					url,
+					sfw: true
+				}]
+			}]
+		};
+	}
 }

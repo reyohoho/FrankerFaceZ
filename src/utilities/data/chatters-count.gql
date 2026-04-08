@@ -1,0 +1,8 @@
+query FFZ_GetChattersCount($login: String!) {
+	channel(name: $login) {
+		id
+		chatters {
+			count
+		}
+	}
+}

@@ -468,6 +468,20 @@ export default class PlayerBase extends Module {
 			}
 		});
 
+		this.settings.add('player.button.mirror', {
+			default: true,
+			ui: {
+				path: 'Player > General >> General',
+				title: 'Add a `Mirror Video` button to the player controls.',
+				description: 'Adds a button to horizontally flip (mirror) the video player.',
+				component: 'setting-check-box'
+			},
+			changed: () => {
+				for(const inst of this.Player.instances)
+					this.addMirrorButton(inst);
+			}
+		});
+
 		if ( document.pictureInPictureEnabled )
 			this.settings.add('player.button.pip', {
 				default: true,
@@ -1293,6 +1307,7 @@ export default class PlayerBase extends Module {
 		this.skipContentWarnings(inst);
 		this.addPiPButton(inst);
 		this.addResetButton(inst);
+		this.addMirrorButton(inst);
 		this.addClipButton(inst);
 		this.addCompressorButton(inst, false);
 		this.addGainSlider(inst, false);
@@ -2187,6 +2202,98 @@ export default class PlayerBase extends Module {
 				'player.reset_button',
 				'Reset Player (Double-Click)'
 			));
+	}
+
+
+	addMirrorButton(inst, tries = 0) {
+		const outer = inst.props.containerRef || this.fine.getChildNode(inst),
+			container = outer && outer.querySelector(RIGHT_CONTROLS),
+			has_mirror = this.settings.get('player.button.mirror');
+
+		if ( ! container ) {
+			if ( ! has_mirror )
+				return;
+
+			if ( tries < 5 )
+				return setTimeout(this.addMirrorButton.bind(this, inst, (tries || 0) + 1), 250);
+
+			return;
+		}
+
+		let tip, btn, cont = container.querySelector('.ffz--player-mirror');
+		if ( ! has_mirror ) {
+			if ( cont )
+				cont.remove();
+			const video = outer.querySelector('video');
+			if ( video )
+				video.style.transform = '';
+			return;
+		}
+
+		if ( ! cont ) {
+			cont = (<div class="ffz--player-mirror tw-inline-flex tw-relative ffz-il-tooltip__container">
+				{btn = (<button
+					class="tw-align-items-center tw-align-middle tw-border-bottom-left-radius-medium tw-border-bottom-right-radius-medium tw-border-top-left-radius-medium tw-border-top-right-radius-medium tw-button-icon tw-button-icon--overlay ffz-core-button ffz-core-button--border ffz-core-button--overlay tw-inline-flex tw-interactive tw-justify-content-center tw-overflow-hidden tw-relative"
+					type="button"
+					data-a-target="ffz-player-mirror-button"
+					onClick={this.toggleMirror.bind(this, inst)}
+				>
+					<div class="tw-align-items-center tw-flex tw-flex-grow-0">
+						<div class="tw-button-icon__icon">
+							<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor">
+								<path d="M0 0h24v24H0z" fill="none"/>
+								<path d="M15 21h2v-2h-2v2zm4-12h2V7h-2v2zM3 5v14c0 1.1.9 2 2 2h4v-2H5V5h4V3H5c-1.1 0-2 .9-2 2zm16-2v2h2c0-1.1-.9-2-2-2zm-8 20h2V1h-2v22zm8-6h2v-2h-2v2zM15 5h2V3h-2v2zm4 8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2z"/>
+							</svg>
+						</div>
+					</div>
+				</button>)}
+				{tip = (<div class="ffz-il-tooltip ffz-il-tooltip--align-right ffz-il-tooltip--up" role="tooltip" />)}
+			</div>);
+
+			const reset = container.querySelector('.ffz--player-reset');
+			if ( reset )
+				container.insertBefore(cont, reset.nextSibling);
+			else {
+				let thing = container.querySelector('.ffz--player-pip button') ||
+					container.querySelector('button[data-a-target="player-theatre-mode-button"]') ||
+					container.querySelector('button[aria-label*="Theat"]') ||
+					container.querySelector('button[data-a-target="player-fullscreen-button"]');
+
+				while(thing?.parentElement && thing.parentElement !== container)
+					thing = thing.parentElement;
+
+				if ( thing?.parentElement === container )
+					container.insertBefore(cont, thing);
+				else
+					container.appendChild(cont);
+			}
+
+		} else {
+			btn = cont.querySelector('button');
+			tip = cont.querySelector('.ffz-il-tooltip');
+		}
+
+		btn.setAttribute('aria-label',
+			tip.textContent = this.i18n.t(
+				'player.mirror_button',
+				'Mirror Video'
+			));
+	}
+
+
+	toggleMirror(inst) {
+		const outer = inst.props.containerRef || this.fine.getChildNode(inst),
+			video = outer && outer.querySelector('video'),
+			btn = outer && outer.querySelector('.ffz--player-mirror button');
+
+		if ( ! video )
+			return;
+
+		const flipped = video.style.transform === 'scaleX(-1)';
+		video.style.transform = flipped ? '' : 'scaleX(-1)';
+
+		if ( btn )
+			btn.classList.toggle('ffz-mirror-active', !flipped);
 	}
 
 

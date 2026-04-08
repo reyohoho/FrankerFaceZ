@@ -146,7 +146,16 @@ export default class AddonManager extends Module<'addons'> {
 		this.settings.provider.on('changed', this.onProviderChange, this);
 
 		this._loader?.then(() => {
-			this.enabled_addons = this.settings.provider.get('addons.enabled', []);
+			if ( ! this.settings.provider.has('addons.enabled') ) {
+				this.enabled_addons = [];
+				for(const [id, addon] of Object.entries(this.addons)) {
+					if ( ! Array.isArray(addon) && addon.default_enabled )
+						this.enabled_addons.push(id);
+				}
+				this.settings.provider.set('addons.enabled', this.enabled_addons);
+			} else {
+				this.enabled_addons = this.settings.provider.get('addons.enabled', []);
+			}
 
 			// We do not await enabling add-ons because that would delay the
 			// main script's execution.

@@ -91,6 +91,9 @@ export type AddonInfo = {
 	/** Optional. List of load tracker events that this add-on should hold while it's being loaded. */
 	load_events?: string[];
 
+	/** Optional. If true, the add-on will be auto-enabled on first run (before the user has configured their addon list). */
+	default_enabled?: boolean;
+
 };
 
 export type BasicAddonInfo = Pick<AddonInfo, 'id'> & Partial<AddonInfo>;
