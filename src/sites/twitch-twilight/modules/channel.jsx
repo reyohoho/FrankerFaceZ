@@ -12,6 +12,13 @@ import { createElement, setChildren } from 'utilities/dom';
 
 const USER_PAGES = ['user', 'user-home', 'user-about', 'video', 'user-video', 'user-clip', 'user-videos', 'user-clips', 'user-collections', 'user-events', 'user-followers', 'user-following'];
 
+const LOCAL_PHRASES = {
+	'ru': {
+		'metadata.chatters.tooltip': 'Количество подключившихся к чату',
+		'metadata.chatters.tooltip.hint': 'Можно отключить в настройках'
+	}
+};
+
 export default class Channel extends Module {
 
 	constructor(...args) {
@@ -29,6 +36,7 @@ export default class Channel extends Module {
 		this.inject('site.router');
 		this.inject('site.twitch_data');
 		this.inject('metadata');
+		this.inject('tooltips');
 		this.inject('socket');
 		this.inject('pubsub');
 
@@ -143,6 +151,15 @@ export default class Channel extends Module {
 
 	onEnable() {
 		this.updateChannelColor();
+
+		this.tooltips.types['chatters-count'] = () => [
+			this.i18n.t('metadata.chatters.tooltip', 'Number of users connected to chat'),
+			<div>{this.i18n.t('metadata.chatters.tooltip.hint', 'Can be disabled in settings')}</div>
+		];
+
+		this.applyLocalPhrases();
+		this.on('i18n:changed', this.applyLocalPhrases, this);
+		this.on('i18n:loaded', this.applyLocalPhrases, this);
 
 		this.css_tweaks.toggle('panel-links', this.settings.get('channel.panel-tips'));
 
@@ -306,7 +323,10 @@ export default class Channel extends Module {
 		}
 
 		let nvc = el.querySelector('.ffz--native-viewers-container');
-		if ( ! nvc ) {
+		if ( ! nvc || ! el.contains(nvc) ) {
+			if ( nvc )
+				nvc.classList.remove('ffz--native-viewers-container');
+			nvc = null;
 			let i = 0,
 				vel = el.querySelector('strong[data-a-target="animated-channel-viewers-count"]');
 			while(vel && vel != el && i < 5) {
@@ -319,6 +339,7 @@ export default class Channel extends Module {
 				i++;
 			}
 		}
+		el._ffz_nvc = nvc;
 
 		if ( ! el._ffz_cont ) {
 			let report = el.querySelector(`.report-button,button[data-test-selector="video-options-button"],button[data-test-selector="clip-options-button"],button[data-a-target="report-button-more-button"]`);
@@ -363,6 +384,8 @@ export default class Channel extends Module {
 		this.settings.updateContext({
 			isWatchParty: watching
 		});
+
+		this.updateChattersCount(el, props);
 
 		if ( ! el._ffz_cont || ! props?.channelID ) {
 			this.updateSubscription(null, null);
@@ -477,7 +500,122 @@ export default class Channel extends Module {
 			el._ffz_meta_timers = null;
 		}
 
+		if ( el._ffz_chatters_timer ) {
+			clearTimeout(el._ffz_chatters_timer);
+			el._ffz_chatters_timer = null;
+		}
+		if ( el._ffz_chatters_el ) {
+			el._ffz_chatters_el.remove();
+			el._ffz_chatters_el = null;
+		}
+		el._ffz_chatters_login = null;
+		el._ffz_chatters_last_text = null;
+		el._ffz_nvc = null;
+
 		el._ffz_update = null;
+	}
+
+	applyLocalPhrases() {
+		const polyglot = this.i18n?._;
+		if ( ! polyglot || typeof polyglot.extend !== 'function' )
+			return;
+
+		const locale = (this.i18n.locale || '').toLowerCase();
+		const base = locale.split(/[-_]/)[0];
+		const phrases = LOCAL_PHRASES[locale] || LOCAL_PHRASES[base];
+		if ( ! phrases )
+			return;
+
+		polyglot.extend(phrases);
+	}
+
+	updateChattersCount(el, props) {
+		const nvc = el._ffz_nvc;
+		const show = this.settings.get('metadata.chatters');
+		const live = !!(props && props.isLive && ! props.videoID && ! props.clipSlug);
+		const login = props?.channelLogin;
+
+		const cleanup = () => {
+			if ( el._ffz_chatters_timer ) {
+				clearTimeout(el._ffz_chatters_timer);
+				el._ffz_chatters_timer = null;
+			}
+			if ( el._ffz_chatters_el ) {
+				el._ffz_chatters_el.remove();
+				el._ffz_chatters_el = null;
+			}
+			el._ffz_chatters_login = null;
+			el._ffz_chatters_last_text = null;
+		};
+
+		if ( ! show || ! live || ! login || ! nvc || ! document.contains(nvc) ) {
+			cleanup();
+			return;
+		}
+
+		let remounted = false;
+		if ( el._ffz_chatters_el && ! nvc.contains(el._ffz_chatters_el) ) {
+			el._ffz_chatters_el.remove();
+			el._ffz_chatters_el = null;
+		}
+
+		if ( ! el._ffz_chatters_el ) {
+			el._ffz_chatters_el = (<span
+				class="ffz--chatters-count ffz-tooltip ffz-tooltip--no-mouse"
+				data-tooltip-type="chatters-count"
+			/>);
+			if ( el._ffz_chatters_last_text )
+				el._ffz_chatters_el.textContent = el._ffz_chatters_last_text;
+			nvc.appendChild(el._ffz_chatters_el);
+			remounted = true;
+		}
+
+		const login_changed = el._ffz_chatters_login !== login;
+		el._ffz_chatters_login = login;
+
+		if ( login_changed ) {
+			el._ffz_chatters_el.textContent = '';
+			el._ffz_chatters_last_text = null;
+			this.fetchChattersCount(el, login);
+		} else if ( remounted || ! el._ffz_chatters_timer ) {
+			this.fetchChattersCount(el, login);
+		}
+	}
+
+	async fetchChattersCount(el, login) {
+		if ( el._ffz_chatters_timer ) {
+			clearTimeout(el._ffz_chatters_timer);
+			el._ffz_chatters_timer = null;
+		}
+
+		try {
+			const query = await import(
+				/* webpackChunkName: 'queries' */
+				'utilities/data/chatters-count.gql'
+			);
+
+			const result = await this.twitch_data.queryApollo(query, {
+				login
+			}, { fetchPolicy: 'network-only' });
+
+			if ( el._ffz_chatters_login !== login )
+				return;
+
+			const count = result?.data?.channel?.chatters?.count;
+			if ( count != null && el._ffz_chatters_el ) {
+				const text = `(${this.i18n.formatNumber(count)})`;
+				el._ffz_chatters_last_text = text;
+				if ( el._ffz_chatters_el.textContent !== text )
+					el._ffz_chatters_el.textContent = text;
+			}
+		} catch(err) { /* no-op */ }
+
+		if ( el._ffz_chatters_login === login )
+			el._ffz_chatters_timer = setTimeout(() => {
+				el._ffz_chatters_timer = null;
+				if ( el._ffz_chatters_login === login )
+					this.fetchChattersCount(el, login);
+			}, 60000);
 	}
 
 	updateMetadata(el, keys) {

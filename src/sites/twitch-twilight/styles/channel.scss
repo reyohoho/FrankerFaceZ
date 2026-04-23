@@ -88,6 +88,20 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.ffz--chatters-count {
+	margin-left: .5rem;
+	font-weight: var(--font-weight-semibold, 600);
+	font-size: var(--font-size-base, 1.3rem);
+	line-height: var(--line-height-body, 1.5);
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: "tnum";
+	color: var(--color-text-live);
+
+	&:empty {
+		display: none;
+	}
+}
+
 .ffz--fade-in {
 	pointer-events: none;
 	animation: ffz-fade-in var(--ffz-fade-duration) 1;

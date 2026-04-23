@@ -349,67 +349,21 @@ export default class Metadata extends Module {
 			ui: {
 				path: 'Channel > Metadata >> Player',
 				title: 'Chatters Count',
-				description: 'Displays the number of users connected to chat in parentheses next to the viewer count.',
+				description: 'Displays the number of users connected to chat in parentheses next to the native viewer count.',
 
 				component: 'setting-check-box'
 			},
 
-			changed: () => this.updateMetadata('chatters')
-		});
-
-
-		this.define('chatters', {
-
-			refresh() {
-				if ( ! this.settings.get('metadata.chatters') )
-					return false;
-				return 60000;
-			},
-
-			async setup(data) {
-				if ( ! data.channel?.live || ! data.channel?.login )
-					return { count: null };
-
-				try {
-					const twitch_data = this.resolve('site.twitch_data');
-					if ( ! twitch_data )
-						return { count: null };
-
-					const query = await import(
-						/* webpackChunkName: 'queries' */
-						'utilities/data/chatters-count.gql'
-					);
-
-					const result = await twitch_data.queryApollo(query, {
-						login: data.channel.login
-					}, { fetchPolicy: 'network-only' });
-
-					return {
-						count: result?.data?.channel?.chatters?.count ?? null
-					};
-				} catch(err) {
-					return { count: null };
+			changed: () => {
+				// Rendering is handled by the channel module directly inside
+				// the native viewer count element, so trigger a bar refresh
+				// for every live InfoBar instance.
+				const channel = this.resolve('site.channel') as any;
+				if ( channel && channel.InfoBar ) {
+					for(const el of channel.InfoBar.instances)
+						channel.updateBar(el);
 				}
-			},
-
-			order: 1.5,
-
-			label(data) {
-				if ( ! this.settings.get('metadata.chatters') || data.count == null )
-					return null;
-
-				return `(${this.i18n.formatNumber(data.count)})`;
-			},
-
-			tooltip() {
-				return this.i18n.t(
-					'metadata.chatters',
-					'Users Connected to Chat'
-				);
-			},
-
-			color: 'var(--color-text-live)'
-
+			}
 		});
 
 
