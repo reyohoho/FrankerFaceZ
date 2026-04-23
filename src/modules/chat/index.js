@@ -1590,12 +1590,6 @@ export default class Chat extends Module {
 		});
 
 		this.on('load_tracker:complete:chat-data', (list) => {
-			if ( this.triggered_reload ) {
-				const sc = this.resolve('site.chat');
-				if ( sc?.addNotice )
-					sc.addNotice('*', this.i18n.t('chat.command.reload.done', 'FFZ has finished reloading data. (Sources: {list})', {list: list.join(', ')}));
-			}
-
 			this.triggered_reload = false;
 		});
 

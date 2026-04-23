@@ -1057,7 +1057,7 @@ export default class Input extends Module {
 			return (<React.Fragment>
 				<div class="tw-relative tw-flex-shrink-0 tw-pd-05" title={emote.token} favorite={emote.favorite}>
 					<img
-						class="emote-autocomplete-provider__image"
+						class={`emote-autocomplete-provider__image${emote.modifier ? ' ffz-rte-zero-width' : ''}`}
 						srcSet={emote.srcSet}
 					/>
 					{emote.favorite && <figure class="ffz--favorite ffz-i-star" />}
@@ -1345,7 +1345,8 @@ export default class Input extends Module {
 					token: emote.name,
 					tokenLower: emote.name.toLowerCase(),
 					srcSet: anim && emote.animSrcSet || emote.srcSet,
-					favorite: favorites.includes(emote.id)
+					favorite: favorites.includes(emote.id),
+					modifier: emote.modifier === true
 				});
 			}
 		}

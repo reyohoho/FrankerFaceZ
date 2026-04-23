@@ -3,6 +3,19 @@
 	overflow: unset !important;
 }
 
+// ReYohoho: highlight zero-width / modifier emotes with orange border
+.emote-autocomplete-provider__image.ffz-rte-zero-width {
+	border: 1px solid #e6b800 !important;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
+.emote-picker__emote-link.ffz-rte-zero-width {
+	border: 1px solid #e6b800;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
 .chat-line__message--ffz-giant-emote {
 	padding: 0.5rem;
 }

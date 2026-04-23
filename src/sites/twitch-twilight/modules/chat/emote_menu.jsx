@@ -940,7 +940,7 @@ export default class EmoteMenu extends Module {
 
 				return (<button
 					key={emote.id}
-					class={`${tt ? 'ffz-tooltip ' : ''}emote-picker__emote-link${!visibility && locked ? ' locked' : ''}${hidden ? ' emote-hidden' : ''}`}
+					class={`${tt ? 'ffz-tooltip ' : ''}emote-picker__emote-link${!visibility && locked ? ' locked' : ''}${hidden ? ' emote-hidden' : ''}${emote.modifier ? ' ffz-rte-zero-width' : ''}`}
 					data-tooltip-type="emote"
 					data-provider={emote.provider}
 					data-id={emote.id}
@@ -1207,6 +1207,7 @@ export default class EmoteMenu extends Module {
 				this.pickTone = this.pickTone.bind(this);
 				this.clickTab = this.clickTab.bind(this);
 				this.clickSideNav = this.clickSideNav.bind(this);
+				this.clickReload = this.clickReload.bind(this);
 				//this.clickRefresh = this.clickRefresh.bind(this);
 				this.handleFilterChange = this.handleFilterChange.bind(this);
 				this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -1437,6 +1438,34 @@ export default class EmoteMenu extends Module {
 				this.setState({
 					tab
 				});
+			}
+
+			clickReload(event) {
+				const target = event?.currentTarget,
+					tt = target && target._ffz_tooltip;
+
+				if ( tt && tt.hide )
+					tt.hide();
+
+				if ( this.state.reloading )
+					return;
+
+				const proxy = t.resolve('addon.reyohoho-emotes-proxy');
+				if ( proxy?.enableCacheBypass )
+					proxy.enableCacheBypass(30000);
+
+				const chat = t.chat;
+				if ( chat && ! chat.triggered_reload ) {
+					const sc = t.resolve('site.chat');
+					if ( sc?.addNotice )
+						sc.addNotice('*', t.i18n.t('chat.command.reload.starting', 'FFZ is reloading data...'));
+
+					chat.triggered_reload = true;
+					chat.emit('chat:reload-data');
+				}
+
+				this.setState({reloading: true});
+				setTimeout(() => this.setState({reloading: false}), 3000);
 			}
 
 			clickSettings(event) { // eslint-disable-line class-methods-use-this
@@ -1816,6 +1845,10 @@ export default class EmoteMenu extends Module {
 
 						if ( ! a.locked && b.locked ) return -1;
 						if ( a.locked && ! b.locked ) return 1;
+
+						// Prioritize zero-width / modifier emotes (ReYohoho)
+						if ( a.modifier && ! b.modifier ) return -1;
+						if ( ! a.modifier && b.modifier ) return 1;
 
 						if ( sort_tiers || a.locked || b.locked ) {
 							if ( a.bits || b.bits ) {
@@ -2570,6 +2603,7 @@ export default class EmoteMenu extends Module {
 								animSrcSet: emote.animSrcSet,
 								effects: emote.modifier ? emote.modifier_flags : 0,
 								effect_prefix: emote.modifier ? emote.modifier_prefix : false,
+								modifier: emote.modifier === true,
 								name: emote.name,
 								favorite: is_fav,
 								locked: locked,
@@ -2808,6 +2842,16 @@ export default class EmoteMenu extends Module {
 											{no_tabs && <div class="tw-mg-y-1 tw-mg-x-05 tw-border-t" />}
 											{no_tabs && (<button
 												class="tw-mg-y-1 tw-c-text-inherit tw-interactable ffz-interactive ffz-interactable--hover-enabled ffz-interactable--default tw-block tw-full-width ffz-tooltip ffz-tooltip--no-mouse"
+												data-title={t.i18n.t('emote-menu.reload', 'Reload Emotes (bypass cache)')}
+												data-tooltip-side="left"
+												onClick={this.clickReload}
+											>
+												<div class={`tw-align-items-center tw-flex tw-justify-content-center ${padding ? '' : 'tw-pd-x-05 '}tw-pd-y-05`}>
+													<figure class={`ffz-emote-picker--nav-icon ffz-i-arrows-cw${this.state.reloading ? ' loading' : ''}`} />
+												</div>
+											</button>)}
+											{no_tabs && (<button
+												class="tw-mg-y-1 tw-c-text-inherit tw-interactable ffz-interactive ffz-interactable--hover-enabled ffz-interactable--default tw-block tw-full-width ffz-tooltip ffz-tooltip--no-mouse"
 												data-title={t.i18n.t('emote-menu.settings', 'Open Settings')}
 												data-tooltip-side="left"
 												onClick={this.clickSettings}
@@ -2936,6 +2980,18 @@ export default class EmoteMenu extends Module {
 											</button>
 										</div>}
 										<div class="tw-flex-grow-1" />
+										<div class="emote-picker-tab-item tw-relative">
+											<button
+												class="ffz-tooltip tw-block tw-full-width ffz-interactable ffz-interactable--hover-enabled ffz-interactable--default tw-interactive"
+												data-tooltip-type="html"
+												data-title={t.i18n.t('emote-menu.reload', 'Reload Emotes (bypass cache)')}
+												onClick={this.clickReload}
+											>
+												<div class="tw-inline-flex tw-pd-x-1 tw-pd-y-05 ffz-font-size-4">
+													<figure class={`ffz-i-arrows-cw${this.state.reloading ? ' loading' : ''}`} />
+												</div>
+											</button>
+										</div>
 										<div class="emote-picker-tab-item tw-relative">
 											<button
 												class="ffz-tooltip tw-block tw-full-width ffz-interactable ffz-interactable--hover-enabled ffz-interactable--default tw-interactive"
