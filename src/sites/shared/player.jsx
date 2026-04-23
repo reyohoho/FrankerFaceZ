@@ -1944,6 +1944,21 @@ export default class PlayerBase extends Module {
 	}
 
 
+	// Native Theatre Mode button has no `data-a-target`, so we must match by
+	// aria-label. The label is localized (e.g. "Режим кинотеатра (alt+t)"),
+	// but the alt+t hotkey suffix is present in every locale.
+	findTheatreButton(container) {
+		if ( ! container )
+			return null;
+
+		return container.querySelector('button[data-a-target="player-theatre-mode-button"]')
+			|| container.querySelector('button[aria-label*="Theat" i]')
+			|| container.querySelector('button[aria-label*="alt+t" i]')
+			|| container.querySelector('button[aria-label*="кинотеатр" i]')
+			|| null;
+	}
+
+
 	addPiPButton(inst, tries = 0) {
 		const outer = inst.props.containerRef || this.fine.getChildNode(inst),
 			video = findPlayerCore(inst.props)?.mediaSinkManager?.video,
@@ -1985,9 +2000,7 @@ export default class PlayerBase extends Module {
 				{tip = (<div class="ffz-il-tooltip ffz-il-tooltip--align-right ffz-il-tooltip--up" role="tooltip" />)}
 			</div>);
 
-			let thing = container.querySelector('button[data-a-target="player-theatre-mode-button"]') ||
-				//container.querySelector('div:not(:has(.tw-tooltip)) button:not([data-a-target])') ||
-				container.querySelector('button[aria-label*="Theat"]') ||
+			let thing = this.findTheatreButton(container) ||
 				container.querySelector('button[data-a-target="player-fullscreen-button"]');
 
 			while(thing?.parentElement && thing.parentElement !== container)
@@ -2102,9 +2115,7 @@ export default class PlayerBase extends Module {
 
 			let thing = container.querySelector('.ffz--player-reset button') ||
 				container.querySelector('.ffz--player-pip button') ||
-				container.querySelector('button[data-a-target="player-theatre-mode-button"]') ||
-				//container.querySelector('div:not(:has(.tw-tooltip)) button:not([data-a-target])') ||
-				container.querySelector('button[aria-label*="Theat"]') ||
+				this.findTheatreButton(container) ||
 				container.querySelector('button[data-a-target="player-fullscreen-button"]');
 
 			while(thing?.parentElement && thing.parentElement !== container)
@@ -2179,9 +2190,7 @@ export default class PlayerBase extends Module {
 			</div>);
 
 			let thing = container.querySelector('.ffz--player-pip button') ||
-				container.querySelector('button[data-a-target="player-theatre-mode-button"]') ||
-				//container.querySelector('div:not(:has(.tw-tooltip)) button:not([data-a-target])') ||
-				container.querySelector('button[aria-label*="Theat"]') ||
+				this.findTheatreButton(container) ||
 				container.querySelector('button[data-a-target="player-fullscreen-button"]');
 
 			while(thing?.parentElement && thing.parentElement !== container)
@@ -2255,8 +2264,7 @@ export default class PlayerBase extends Module {
 				container.insertBefore(cont, reset.nextSibling);
 			else {
 				let thing = container.querySelector('.ffz--player-pip button') ||
-					container.querySelector('button[data-a-target="player-theatre-mode-button"]') ||
-					container.querySelector('button[aria-label*="Theat"]') ||
+					this.findTheatreButton(container) ||
 					container.querySelector('button[data-a-target="player-fullscreen-button"]');
 
 				while(thing?.parentElement && thing.parentElement !== container)

@@ -1376,7 +1376,7 @@ other {# messages were deleted by a moderator.}
 
 				// Now, return the final chat line color.
 				return e('div', {
-					className: `${klass}${deleted ? ' ffz--deleted-message' : ''}${msg.mentioned ? ' ffz-mentioned' : ''}${bg_css ? ' ffz-custom-color' : ''}`,
+					className: `${klass}${deleted ? ' ffz--deleted-message' : ''}${msg.mentioned ? ' ffz-mentioned' : ''}${bg_css ? ' ffz-custom-color' : ''}${msg.ffz_first_msg ? ' rte-first-message' : ''}`,
 					style: {backgroundColor: bg_css},
 					'data-room-id': source_room?.id ?? msg.roomId ?? current_room.id,
 					'data-room': source_room?.login ?? msg.roomLogin,

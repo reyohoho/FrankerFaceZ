@@ -612,3 +612,41 @@
 		}
 	}
 }
+
+
+.chat-line__message.rte-first-message,
+.vod-message.rte-first-message,
+.user-notice-line.rte-first-message {
+	background-color: #c832c852 !important;
+	position: relative;
+	padding-top: 20px;
+
+	&::before {
+		content: "FIRST MESSAGE";
+		position: absolute;
+		top: 2px;
+		right: 8px;
+		color: rgba(255, 255, 255, 0.6);
+		font-size: 8px;
+		font-weight: normal;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		pointer-events: none;
+		z-index: 3;
+	}
+}
+
+// ReYohoho Mod Slider compat:
+// Mod slider turns .chat-line__message into a flex container and adds
+// .rms-handle-wrapper (the grab handle / three-dots) as the first child.
+// If we keep padding-top on the root, the handle (and mod action icons)
+// get pushed down together with the message text. Move the padding to
+// the inner .rms-wrapped so only the message content is shifted.
+.chat-line__message.rte-first-message.rms-swipe-slider {
+	padding-top: 0 !important;
+
+	& > .rms-wrapped {
+		padding-top: 20px;
+	}
+}
+
