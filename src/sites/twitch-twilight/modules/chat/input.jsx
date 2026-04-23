@@ -702,7 +702,12 @@ export default class Input extends Module {
 
 				const val = inst.ffzGetValue();
 
-				if ( inst.autocompleteInputRef && inst.chatInputRef && t.chat.context.get('chat.mru.enabled') && ! event.shiftKey && ! event.ctrlKey && ! event.altKey ) {
+				// Don't intercept arrow keys while the autocomplete suggestion
+				// balloon is open; let Twitch handle navigation through it.
+				const autocompleteOpen = (code === 38 || code === 40)
+					&& !! document.querySelector('.autocomplete-balloon');
+
+				if ( ! autocompleteOpen && inst.autocompleteInputRef && inst.chatInputRef && t.chat.context.get('chat.mru.enabled') && ! event.shiftKey && ! event.ctrlKey && ! event.altKey ) {
 					const sel = inst.ffzGetSelection();
 
 					// Arrow Up

@@ -923,7 +923,7 @@ export default class Chat extends Module {
 		});
 
 		this.settings.add('chat.filtering.all-mentions', {
-			default: false,
+			default: true,
 			ui: {
 				component: 'setting-check-box',
 				path: 'Chat > Filtering > General >> Appearance',
@@ -933,7 +933,7 @@ export default class Chat extends Module {
 		});
 
 		this.settings.add('chat.filtering.color-mentions', {
-			default: false,
+			default: true,
 			ui: {
 				component: 'setting-check-box',
 				path: 'Chat > Filtering > General >> Appearance',
@@ -1149,7 +1149,7 @@ export default class Chat extends Module {
 		});
 
 		this.settings.add('chat.me-style', {
-			default: 2,
+			default: 3,
 			ui: {
 				path: 'Chat > Appearance >> Chat Lines',
 				title: 'Action Style',
@@ -1274,8 +1274,10 @@ export default class Chat extends Module {
 		this.context.on('changed:chat.filtering.need-colors', async val => {
 			if ( val )
 				await this.createColorCache();
-			else
+			else {
 				this.color_cache = null;
+				this.user_id_cache = null;
+			}
 
 			this.emit(':update-line-tokens');
 		});
@@ -1288,6 +1290,7 @@ export default class Chat extends Module {
 	async createColorCache() {
 		const LRUCache = await require(/* webpackChunkName: 'utils' */ 'mnemonist/lru-cache');
 		this.color_cache = new LRUCache(150);
+		this.user_id_cache = new LRUCache(150);
 	}
 
 
@@ -2075,6 +2078,9 @@ export default class Chat extends Module {
 
 		if ( this.color_cache && user.color )
 			this.color_cache.set(user.login, user.color);
+
+		if ( this.user_id_cache && user.login && user.id )
+			this.user_id_cache.set(user.login, user.id);
 
 		// Standardize Message Content
 		if ( ! msg.message && msg.messageParts )

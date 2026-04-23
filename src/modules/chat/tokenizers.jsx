@@ -416,14 +416,53 @@ export const Mentions = {
 			color = chat ? chat.colors.process(color) : color;
 		}
 
-		return (<strong
-			class={`chat-line__message-mention${token.me ? ' ffz--mention-me' : ''} ffz--pointer-events`}
-			style={{color}}
-			data-login={token.recipient}
-			onClick={this.handleMentionClick}
-		>
-			{token.text}
-		</strong>)
+		// Try to apply RTE / 7TV nametag paints to the mention. RTE takes
+		// precedence over 7TV when both are available.
+		let extraClass = '';
+		const props = {
+			className: `chat-line__message-mention${token.me ? ' ffz--mention-me' : ''} ffz--pointer-events`,
+			style: {color},
+			'data-login': token.recipient,
+			onClick: this.handleMentionClick
+		};
+
+		if ( token.recipient ) {
+			let paintApplied = false;
+
+			try {
+				const rteProxy = this.resolve('addon.reyohoho-emotes-proxy');
+				const paintId = rteProxy && rteProxy.settings?.get('addon.reyohoho-emotes-proxy.paints')
+					? rteProxy.getUserPaintByLogin?.(token.recipient)
+					: null;
+				if ( paintId ) {
+					extraClass = ' rte-paint rte-painted-content ffz-tooltip ffz-tooltip--no-mouse';
+					props['data-rte-paint-id'] = paintId;
+					props['data-rte-painted-text'] = 'true';
+					props['data-tooltip-type'] = 'reyohoho-paint';
+					paintApplied = true;
+				}
+			} catch { /* RTE proxy addon unavailable */ }
+
+			if ( ! paintApplied ) {
+				try {
+					const paints7tv = this.resolve('addon.7tv-emotes.nametag-paints');
+					const paintId = paints7tv && paints7tv.settings?.get('addon.seventv_emotes.nametag_paints')
+						? paints7tv.getUserPaintByLogin?.(token.recipient)
+						: null;
+					if ( paintId ) {
+						extraClass = ' seventv-paint seventv-painted-content ffz-tooltip ffz-tooltip--no-mouse';
+						props['data-seventv-paint-id'] = paintId;
+						props['data-seventv-painted-text'] = 'true';
+						props['data-tooltip-type'] = 'seventv-paint';
+					}
+				} catch { /* 7TV paints addon unavailable */ }
+			}
+		}
+
+		if ( extraClass )
+			props.className += extraClass;
+
+		return createElement('strong', props, token.text);
 	},
 
 	process(tokens, msg, user) {
