@@ -36,7 +36,10 @@ const Flags = make_enum_flags(
 	'Cursed',
 	'Jam',
 	'Bounce',
-	'NoSpace'
+	'NoSpace',
+	'Rotate270',
+	'ShrinkX',
+	'Party'
 );
 
 export const MODIFIER_FLAGS = Flags;
@@ -204,6 +207,20 @@ ${appearLeaveToKeyframes(LEAVE_FRAMES, 0.5, 50, true)}
 100% { transform: var(--ffz-effect-transforms) rotate(360deg); }
 }`
 	},
+	{
+		setting: 'Rotate90',
+		flags: Flags.Rotate90,
+		title: 'Rotate 90 Degrees',
+		allow_overflow: true,
+		transform: 'rotate(-90deg)'
+	},
+	{
+		setting: 'Rotate270',
+		flags: Flags.Rotate270,
+		title: 'Rotate 270 Degrees',
+		allow_overflow: true,
+		transform: 'rotate(90deg)'
+	},
 	/*{
 		setting: [
 			'Slide',
@@ -239,6 +256,21 @@ ${appearLeaveToKeyframes(LEAVE_FRAMES, 0.5, 50, true)}
 }`
 	},
 	{
+		setting: 'Party',
+		flags: Flags.Party,
+		title: 'Party Animation',
+		animation: 'ffz-effect-party 1.5s linear infinite',
+		animationFilter: 'ffz-effect-party-filter 1.5s linear infinite',
+		raw: `@keyframes ffz-effect-party {
+	0% { filter: sepia(0.5) hue-rotate(0deg) saturate(2.5); }
+	100% { filter: sepia(0.5) hue-rotate(360deg) saturate(2.5); }
+}
+@keyframes ffz-effect-party-filter {
+	0% { filter: var(--ffz-effect-filters) sepia(0.5) hue-rotate(0deg) saturate(2.5); }
+	100% { filter: var(--ffz-effect-filters) sepia(0.5) hue-rotate(360deg) saturate(2.5); }
+}`
+	},
+	{
 		setting: 'HyperRed',
 		flags: Flags.HyperRed,
 		title: 'Hyper Red',
@@ -247,34 +279,34 @@ ${appearLeaveToKeyframes(LEAVE_FRAMES, 0.5, 50, true)}
 	{
 		setting: 'Shake',
 		flags: Flags.Shake,
-		title: 'Hyper Shake Animation',
-		animation: 'ffz-effect-shake 0.1s linear infinite',
-		animationTransform: 'ffz-effect-shake-transform 0.1s linear infinite',
+		title: 'Shake Animation',
+		animation: 'ffz-effect-shake 500ms step-start infinite',
+		animationTransform: 'ffz-effect-shake-transform 500ms step-start infinite',
 		raw: `@keyframes ffz-effect-shake-transform {
-	0% { transform: var(--ffz-effect-transforms) translate(1px, 1px); }
-	10% { transform: var(--ffz-effect-transforms) translate(-1px, -2px); }
-	20% { transform: var(--ffz-effect-transforms) translate(-3px, 0px); }
-	30% { transform: var(--ffz-effect-transforms) translate(3px, 2px); }
-	40% { transform: var(--ffz-effect-transforms) translate(1px, -1px); }
-	50% { transform: var(--ffz-effect-transforms) translate(-1px, 2px); }
-	60% { transform: var(--ffz-effect-transforms) translate(-3px, 1px); }
-	70% { transform: var(--ffz-effect-transforms) translate(3px, 1px); }
-	80% { transform: var(--ffz-effect-transforms) translate(-1px, -1px); }
-	90% { transform: var(--ffz-effect-transforms) translate(1px, 2px); }
-	100% { transform: var(--ffz-effect-transforms) translate(1px, -2px); }
+	0% { transform: var(--ffz-effect-transforms) translate(0px, 1px); }
+	10% { transform: var(--ffz-effect-transforms) translate(2px, 0px); }
+	20% { transform: var(--ffz-effect-transforms) translate(1px, -2px); }
+	30% { transform: var(--ffz-effect-transforms) translate(-2px, 1px); }
+	40% { transform: var(--ffz-effect-transforms) translate(0px, -1px); }
+	50% { transform: var(--ffz-effect-transforms) translate(2px, 2px); }
+	60% { transform: var(--ffz-effect-transforms) translate(-1px, -1px); }
+	70% { transform: var(--ffz-effect-transforms) translate(-2px, 2px); }
+	80% { transform: var(--ffz-effect-transforms) translate(2px, 1px); }
+	90% { transform: var(--ffz-effect-transforms) translate(-1px, -2px); }
+	100% { transform: var(--ffz-effect-transforms) translate(1px, 0px); }
 }
 @keyframes ffz-effect-shake {
-	0% { transform: translate(1px, 1px); }
-	10% { transform: translate(-1px, -2px); }
-	20% { transform: translate(-3px, 0px); }
-	30% { transform: translate(3px, 2px); }
-	40% { transform: translate(1px, -1px); }
-	50% { transform: translate(-1px, 2px); }
-	60% { transform: translate(-3px, 1px); }
-	70% { transform: translate(3px, 1px); }
-	80% { transform: translate(-1px, -1px); }
-	90% { transform: translate(1px, 2px); }
-	100% { transform: translate(1px, -2px); }
+	0% { transform: translate(0px, 1px); }
+	10% { transform: translate(2px, 0px); }
+	20% { transform: translate(1px, -2px); }
+	30% { transform: translate(-2px, 1px); }
+	40% { transform: translate(0px, -1px); }
+	50% { transform: translate(2px, 2px); }
+	60% { transform: translate(-1px, -1px); }
+	70% { transform: translate(-2px, 2px); }
+	80% { transform: translate(2px, 1px); }
+	90% { transform: translate(-1px, -2px); }
+	100% { transform: translate(1px, 0px); }
 }`
 	},
 	{
@@ -1233,6 +1265,7 @@ export default class Emotes extends Module {
 
 		this.activeAsBackgroundMask = 0;
 		this.activeNoWideMask = 0;
+		this.activeOverflowMask = 0;
 
 		for(const input of EFFECT_STYLES) {
 			if ( input.setting && ! Array.isArray(input.setting) )
@@ -1258,6 +1291,8 @@ export default class Emotes extends Module {
 					this.activeAsBackgroundMask = this.activeAsBackgroundMask | input.flags;
 				if ( input.no_wide )
 					this.activeNoWideMask = this.activeNoWideMask | input.flags;
+				if ( input.allow_overflow )
+					this.activeOverflowMask = this.activeOverflowMask | input.flags;
 			}
 		}
 

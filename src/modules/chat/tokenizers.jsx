@@ -1358,6 +1358,7 @@ export const AddonEmotes = {
 
 		let as_bg = (this.emotes.activeAsBackgroundMask & effects) !== 0;
 		let no_wide = (this.emotes.activeNoWideMask & effects) !== 0;
+		const allow_overflow = (this.emotes.activeOverflowMask & effects) !== 0;
 
 		if ( no_wide || effects || ml ) {
 			// We need to calculate the size of the emote and the biggest
@@ -1414,8 +1415,10 @@ export const AddonEmotes = {
 				if ( (effects & STRETCH_Y) === STRETCH_Y )
 					style.height *= 2;*/
 
-				style.width = Math.min(style.width, token.big ? 256 : 128);
-				style.height = Math.min(style.height, token.big ? 80 : 40);
+				if ( ! allow_overflow ) {
+					style.width = Math.min(style.width, token.big ? 256 : 128);
+					style.height = Math.min(style.height, token.big ? 80 : 40);
+				}
 			}
 
 			if ( no_wide ) {
@@ -1672,6 +1675,7 @@ export const AddonEmotes = {
 
 					let as_bg = (this.emotes.activeAsBackgroundMask & effects) !== 0;
 					let no_wide = (this.emotes.activeNoWideMask & effects) !== 0;
+					const allow_overflow = (this.emotes.activeOverflowMask & effects) !== 0;
 
 					let changed = false;
 
@@ -1692,7 +1696,7 @@ export const AddonEmotes = {
 						changed = true;
 					}*/
 
-					if ( changed ) {
+					if ( changed && ! allow_overflow ) {
 						if ( style.width > 512 )
 							style.width = 512;
 						if ( style.height > 160 )
