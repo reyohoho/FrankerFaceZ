@@ -230,17 +230,17 @@ export default class EmoteMenu extends Module {
 
 		this.settings.add('chat.emote-menu.icon', {
 			requires: ['chat.emote-menu.enabled', 'context.bttv.emote_menu'],
-			default: false,
+			default: true,
 			process(ctx, val) {
 				if ( ! ctx.get('chat.emote-menu.enabled') )
 					return false;
 
-				return ctx.get('context.bttv.emote_menu') || val;
+				return true;
 			},
 
 			ui: {
 				path: 'Chat > Emote Menu >> Appearance',
-				title: 'Replace the emote menu icon with the FFZ icon for that classic feel.',
+				title: 'Replace the emote menu icon with the ReYohoho icon.',
 				description: '**Note:** This setting may be forcibly enabled if other emote menus are detected, to ensure you can visually identify the FFZ Emote Menu.',
 				component: 'setting-check-box'
 			}
@@ -436,8 +436,38 @@ export default class EmoteMenu extends Module {
 
 		this.chat.context.on('changed:chat.emoji.style', this.updateEmojiVariables, this);
 
-		this.chat.context.getChanges('chat.emote-menu.icon', val =>
-			this.css_tweaks.toggle('emote-menu', val));
+		const emote_menu_icon_css = `
+[data-a-target="emote-picker-button"] figure,
+[data-test-selector="emote-button"] figure,
+[data-a-target="emote-picker-button"] .tw-svg,
+[data-test-selector="emote-button"] .tw-svg {
+	background: currentColor !important;
+	display: block !important;
+	height: 2rem !important;
+	mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Ccircle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/%3E%3Ctext x="12" y="12.5" text-anchor="middle" dominant-baseline="central" fill="black" font-size="13" font-weight="700" font-family="Arial,sans-serif"%3ER%3C/text%3E%3C/svg%3E') center / 2rem 2rem no-repeat !important;
+	-webkit-mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Ccircle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/%3E%3Ctext x="12" y="12.5" text-anchor="middle" dominant-baseline="central" fill="black" font-size="13" font-weight="700" font-family="Arial,sans-serif"%3ER%3C/text%3E%3C/svg%3E') center / 2rem 2rem no-repeat !important;
+	width: 2rem !important;
+}
+
+[data-a-target="emote-picker-button"] figure:before,
+[data-test-selector="emote-button"] figure:before {
+	content: '' !important;
+}
+
+[data-a-target="emote-picker-button"] svg,
+[data-test-selector="emote-button"] svg {
+	opacity: 0 !important;
+}
+`;
+		let emote_menu_icon_timer = null;
+		const apply_emote_menu_icon = () => {
+			clearTimeout(emote_menu_icon_timer);
+			emote_menu_icon_timer = setTimeout(() =>
+				this.css_tweaks.set('emote-menu', emote_menu_icon_css), 500);
+		};
+
+		apply_emote_menu_icon();
+		this.chat.context.on('changed:chat.emote-menu.enabled', apply_emote_menu_icon);
 
 		this.updateEmojiVariables();
 

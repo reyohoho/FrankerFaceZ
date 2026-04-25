@@ -32,7 +32,7 @@ declare module 'utilities/types' {
  */
 type TwitchPubSubClient = {
 
-	connection: {
+	connection?: {
 		removeAllListeners(topic: string): void;
 		addListener(topic: string, listener: (event: any) => void): void;
 	}
@@ -154,7 +154,7 @@ export default class Subpump extends Module<'site.subpump', SubpumpEvents> {
 				this.hookClient(instance);
 			} catch(err) {
 				this.instance = null;
-				this.log.info('Error hooking PubSub client. This is expected.', err);
+				this.log.info('Unable to hook PubSub client. This is expected.', err instanceof Error ? err.message : err);
 			}
 		}
 
@@ -207,6 +207,11 @@ export default class Subpump extends Module<'site.subpump', SubpumpEvents> {
 	}
 
 	hookClient(client: TwitchPubSubClient) {
+		if ( typeof client.onMessage !== 'function' ||
+			 typeof client.connection?.removeAllListeners !== 'function' ||
+			 typeof client.connection?.addListener !== 'function' )
+			throw new Error('Unsupported PubSub client shape.');
+
 		const t = this,
 			orig_message = client.onMessage;
 
