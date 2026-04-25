@@ -775,7 +775,14 @@ export default class SettingsManager extends Module<'settings', SettingsEvents> 
 			return provider;
 		}
 
-		// Fallback to localStorage if nothing else was wanted and available.
+		// The saved choice isn't usable in this context (e.g. the extension is
+		// no longer installed, or this is an embed/player frame where the
+		// chosen provider isn't supported). Fall back to LocalStorage but make
+		// the situation visible so users don't think their selection was lost
+		// without explanation.
+		if ( wanted && wanted !== 'local' )
+			this.log.warn(`Saved settings provider "${wanted}" is not available in this context; falling back to LocalStorage. The saved choice has been kept and will be used again as soon as it becomes available.`);
+
 		this._active_provider = 'local';
 		return new LocalStorageProvider(this);
 	}
@@ -843,44 +850,66 @@ export default class SettingsManager extends Module<'settings', SettingsEvents> 
 		// Let all other tabs know what's up.
 		old_provider.broadcastTransfer();
 
+		// Persist the selected provider key BEFORE we attempt any data transfer.
+		// If the transfer hangs/errors (e.g. because the extension worker stops
+		// responding, or two providers race on the shared FFZ IndexedDB), we
+		// still want the user's explicit choice to stick on the next page load.
+		// We remember the previous value so we can revert if the new provider
+		// turns out to be unusable.
+		const previous_saved = localStorage.ffzProviderv2;
+		try {
+			localStorage.ffzProviderv2 = key;
+		} catch(err) {
+			this.log.error('Unable to persist selected settings provider to localStorage.', err);
+			throw err;
+		}
+
 		// Are we transfering settings?
 		if ( transfer ) {
-			const new_provider = new (this.providers[key] as any)(this) as SettingsProvider;
-			await new_provider.awaitReady();
+			try {
+				const new_provider = new (this.providers[key] as any)(this) as SettingsProvider;
+				await new_provider.awaitReady();
 
-			if ( new_provider.allowTransfer && old_provider.allowTransfer ) {
-				old_provider.disableEvents();
+				if ( new_provider.allowTransfer && old_provider.allowTransfer ) {
+					old_provider.disableEvents();
 
-				// When transfering, we clear all existing settings.
-				new_provider.clear();
-				if ( new_provider instanceof AdvancedSettingsProvider && new_provider.supportsBlobs )
-					await new_provider.clearBlobs();
+					// When transfering, we clear all existing settings.
+					new_provider.clear();
+					if ( new_provider instanceof AdvancedSettingsProvider && new_provider.supportsBlobs )
+						await new_provider.clearBlobs();
 
-				// Wait for it to do that.
-				await new_provider.flush();
+					// Wait for it to do that.
+					await new_provider.flush();
 
-				for(const [key,val] of old_provider.entries())
-					new_provider.set(key, val);
+					for(const [key,val] of old_provider.entries())
+						new_provider.set(key, val);
 
-				if ( old_provider instanceof AdvancedSettingsProvider && old_provider.supportsBlobs && new_provider instanceof AdvancedSettingsProvider && new_provider.supportsBlobs ) {
-					for(const key of await old_provider.blobKeys() ) {
-						const blob = await old_provider.getBlob(key); // eslint-disable-line no-await-in-loop
-						if ( blob )
-							await new_provider.setBlob(key, blob); // eslint-disable-line no-await-in-loop
+					if ( old_provider instanceof AdvancedSettingsProvider && old_provider.supportsBlobs && new_provider instanceof AdvancedSettingsProvider && new_provider.supportsBlobs ) {
+						for(const key of await old_provider.blobKeys() ) {
+							const blob = await old_provider.getBlob(key); // eslint-disable-line no-await-in-loop
+							if ( blob )
+								await new_provider.setBlob(key, blob); // eslint-disable-line no-await-in-loop
+						}
+
+						await old_provider.clearBlobs();
 					}
 
-					await old_provider.clearBlobs();
+					old_provider.clear();
+
+					await old_provider.flush();
+					await new_provider.flush();
 				}
-
-				old_provider.clear();
-
-				await old_provider.flush();
-				await new_provider.flush();
+			} catch(err) {
+				this.log.error(`Error while transferring settings to provider "${key}". The provider key has been kept; data may be incomplete.`, err);
+				// Intentionally do NOT revert the provider key here: the user
+				// explicitly asked to switch, and silently bouncing them back
+				// to the old provider was the original "selected provider not
+				// saved" symptom we are fixing.
+				void previous_saved;
 			}
 		}
 
 		// Change over.
-		localStorage.ffzProviderv2 = key;
 		location.reload();
 	}
 

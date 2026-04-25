@@ -432,7 +432,11 @@ export abstract class RemoteSettingsProvider extends AdvancedSettingsProvider {
 export class LocalStorageProvider extends SettingsProvider {
 
 	// Static Stuff
-	static priority = -1000;
+	// NOTE: Priority intentionally set above IndexedDBProvider (10) and
+	// ExtensionProvider (5) so LocalStorage is the default sniffed provider
+	// on fresh installs. The other providers are still picked by
+	// `sniffProvider()` if they already have content from a previous session.
+	static priority = 1000;
 	static title = 'Local Storage';
 	static description = '[Local Storage](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API) is available on all platforms and fast to access, but has poorly defined capacity limits and may be cleared unexpectedly. Particularly, clearing cookies and cache in your browser will likely clear Local Storage as well.';
 
@@ -1592,12 +1596,20 @@ export class ExtensionProvider extends RemoteSettingsProvider {
 		});
 	}
 
-	static priority = 101;
+	// NOTE: Priority intentionally set below IndexedDBProvider (10) so that
+	// IndexedDB is preferred as the default sniffed provider on fresh installs.
+	// Extension storage shares the same `FFZ` IndexedDB database with the
+	// page-side IndexedDBProvider, so picking it as the auto-default leads to
+	// surprising data races during a transfer. Users can still switch to it
+	// explicitly from the settings UI.
+	static priority = 5;
 	static title = 'Browser Extension Storage';
 	static description = 'This provider uses a browser extension service worker to store settings in a location that should not suffer from issues due to storage partitioning or cache clearing.';
 
 	static crossOrigin() { return true; }
 	static canSupportBlobs() { return true; }
+
+	static allowAsDefault() { return false; }
 
 	static allowTransfer = true;
 	static shouldUpdate = true;
