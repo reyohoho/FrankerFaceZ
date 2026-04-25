@@ -603,13 +603,47 @@
 		pointer-events: none;
 
 		img {
-			position: absolute;
+			// `position: absolute` is overridden on twitch.tv by a more
+			// specific rule on `.chat-line__message--emote`/`.chat-image`,
+			// which leaves `top/left` ineffective and the `translate(-50%, -50%)`
+			// transform offsets the modifier image from its in-flow location
+			// instead of from the center of the wrapper. Force absolute here
+			// (and on the explicit `img` selector below) to overrule.
+			position: absolute !important;
 			pointer-events: none !important;
 			margin: 0;
 			top: 50%;
 			left: 50%;
 			transform: translate(-50%, -50%);
 		}
+
+		img.chat-line__message--emote,
+		img.chat-image,
+		img.ffz-emote,
+		img.ffz-emoji {
+			position: absolute !important;
+			top: 50%;
+			left: 50%;
+			margin: 0 !important;
+			transform: translate(-50%, -50%);
+		}
+	}
+}
+
+
+// Pinned chat highlight body uses Twitch's `tw-title` typography (larger
+// font + line-height than regular chat messages). Force the FFZ emote image
+// to align to the middle of that line so modifier overlays — which are
+// already centered relative to their wrapper — sit directly on top of the
+// base emote rather than drifting with the title baseline.
+.pinned-chat__message {
+	img.chat-line__message--emote,
+	img.ffz-emote,
+	img.ffz-emoji,
+	img.chat-image,
+	.modified-emote,
+	.scaled-modified-emote {
+		vertical-align: middle;
 	}
 }
 

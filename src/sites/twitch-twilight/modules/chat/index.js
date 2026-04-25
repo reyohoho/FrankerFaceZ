@@ -7,6 +7,7 @@
 import {Color, ColorAdjuster} from 'utilities/color';
 import {get, has, make_enum, shallow_object_equals, set_equals, deep_equals, glob_to_regex, escape_regex, generateUUID} from 'utilities/object';
 import {WEBKIT_CSS as WEBKIT} from 'utilities/constants';
+import {createElement as createDOMElement} from 'utilities/dom';
 
 import {useFont} from 'utilities/fonts';
 import awaitMD, { getMD } from 'utilities/markdown';
@@ -198,6 +199,86 @@ const MISBEHAVING_EVENTS = [
 ];
 
 
+// CSS properties that take a unitless number value. Mirrors React's
+// `isUnitlessNumber` table so that a numeric value like `style={{width: 28}}`
+// is serialized as `28px` (matching React) instead of being silently dropped
+// by the browser as an invalid length.
+const UNITLESS_STYLE_PROPS = new Set([
+	'animationIterationCount',
+	'aspectRatio',
+	'borderImageOutset',
+	'borderImageSlice',
+	'borderImageWidth',
+	'boxFlex',
+	'boxFlexGroup',
+	'boxOrdinalGroup',
+	'columnCount',
+	'columns',
+	'flex',
+	'flexGrow',
+	'flexNegative',
+	'flexOrder',
+	'flexPositive',
+	'flexShrink',
+	'fontWeight',
+	'gridArea',
+	'gridColumn',
+	'gridColumnEnd',
+	'gridColumnSpan',
+	'gridColumnStart',
+	'gridRow',
+	'gridRowEnd',
+	'gridRowSpan',
+	'gridRowStart',
+	'lineClamp',
+	'lineHeight',
+	'opacity',
+	'order',
+	'orphans',
+	'scale',
+	'tabSize',
+	'widows',
+	'zIndex',
+	'zoom',
+	'fillOpacity',
+	'floodOpacity',
+	'stopOpacity',
+	'strokeDasharray',
+	'strokeDashoffset',
+	'strokeMiterlimit',
+	'strokeOpacity',
+	'strokeWidth'
+]);
+
+// Wraps `createElement` so that numeric style values are converted to `<n>px`
+// strings before being assigned to `el.style[key]`. The base helper assigns
+// numbers directly which the CSS engine rejects for length properties, leaving
+// modifier emote wrappers without dimensions and breaking zero-width overlays.
+function pxCreateElement(tag, props, ...children) {
+	if ( props && typeof props === 'object' && props.style && typeof props.style === 'object' ) {
+		const src = props.style;
+		let dst = null;
+
+		for (const key of Object.keys(src)) {
+			const val = src[key];
+			if ( typeof val === 'number' && Number.isFinite(val) && ! UNITLESS_STYLE_PROPS.has(key) && ! key.startsWith('--') ) {
+				if ( ! dst ) {
+					dst = {};
+					for (const k of Object.keys(src))
+						dst[k] = src[k];
+				}
+				dst[key] = `${val}px`;
+			}
+		}
+
+		if ( dst )
+			props = {...props, style: dst};
+	}
+
+	return createDOMElement(tag, props, ...children);
+}
+
+
 export default class ChatHook extends Module {
 	constructor(...args) {
 		super(...args);
@@ -217,6 +298,7 @@ export default class ChatHook extends Module {
 		this.inject('site');
 		this.inject('site.router');
 		this.inject('site.fine');
+		this.inject('site.elemental');
 		this.inject('site.web_munch');
 		this.inject('site.css_tweaks');
 		this.inject('site.subpump');
@@ -333,6 +415,19 @@ export default class ChatHook extends Module {
 			'gift-banner',
 			n => n.getBannerText && n.onGiftMoreClick,
 			Twilight.CHAT_ROUTES
+		);
+
+		// The pinned chat highlight does not expose its React component via fine,
+		// so we hook it via DOM. The element gets re-rendered by Twitch as a single
+		// `<span class="text-fragment">` containing the raw message body; we replace
+		// its contents with FFZ-tokenized output (custom emotes, zero-width modifiers,
+		// links, mentions, etc.) the same way regular chat lines are rendered.
+		this.PinnedChatMessage = this.elemental.define(
+			'pinned-chat-message',
+			'.pinned-chat__message',
+			Twilight.CHAT_ROUTES,
+			{childList: true, subtree: true, characterData: true},
+			0, 5000, true
 		);
 
 		// Settings
@@ -1438,6 +1533,20 @@ export default class ChatHook extends Module {
 		this.PinnedCallout.on('update', this.onPinnedCallout, this);
 		this.PinnedCallout.ready(() => this.updatePinnedCallouts());
 
+		this.PinnedChatMessage.on('mount', el => this.processPinnedChatMessage(el));
+		this.PinnedChatMessage.on('mutate', el => this.processPinnedChatMessage(el));
+
+		const reprocessPinnedChat = () => {
+			for (const el of this.PinnedChatMessage.instances)
+				this.refreshPinnedChatMessage(el);
+		};
+
+		this.on('chat:update-line-tokens', reprocessPinnedChat);
+		this.on('chat.emotes:loaded', reprocessPinnedChat);
+		this.on('chat.emotes:update-default-sets', reprocessPinnedChat);
+		this.on('chat.emotes:update-sub-sets', reprocessPinnedChat);
+		this.on('chat.emotes:update-effects', reprocessPinnedChat);
+
 		const t = this;
 
 		this.PointsInfo.on('mount', this.updatePointsInfo, this);
@@ -1955,6 +2064,208 @@ export default class ChatHook extends Module {
 		// Auto-claim drops
 		if ( type === 'drop' )
 			this.autoClickDrop(inst);
+	}
+
+	// ========================================================================
+	// Pinned Chat Message DOM Hook
+	// ========================================================================
+	//
+	// Twitch renders pinned chat highlights via an opaque component that we cannot
+	// easily wrap with `fine`. The visible body is always a `<p class="pinned-chat__message">`
+	// containing one or more `<span class="text-fragment" data-a-target="chat-message-text">`
+	// elements with the raw text.
+	//
+	// We detect this "pristine" state and replace it with FFZ-tokenized output (custom
+	// emotes, zero-width modifiers, links, mentions, etc.) using `chat.tokenizeMessage`
+	// and `chat.renderTokens`. After our replacement, the element no longer matches the
+	// pristine pattern, so the MutationObserver does not loop on us. If Twitch re-renders
+	// the element back to pristine state, we re-process it.
+
+	processPinnedChatMessage(el) {
+		if ( ! el )
+			return;
+
+		const children = Array.from(el.children);
+		if ( ! children.length )
+			return;
+
+		const isPristine = children.every(c =>
+			c.nodeType === 1 &&
+			c.tagName === 'SPAN' &&
+			c.classList?.contains('text-fragment') &&
+			c.getAttribute('data-a-target') === 'chat-message-text'
+		);
+
+		if ( ! isPristine )
+			return;
+
+		const text = children.map(c => c.textContent || '').join('');
+		if ( ! text )
+			return;
+
+		try {
+			const cont = this.ChatContainer.first ?? this.ChatService.first,
+				room_id = cont?.props?.channelID,
+				room_login = cont?.props?.channelLogin?.toLowerCase?.();
+
+			let user = null;
+			try { user = this.site.getUser?.(); } catch(_) { /* no-op */ }
+
+			const msg = {
+				message: text,
+				user: { id: '0', login: '', displayName: '' },
+				badges: {},
+				roomID: room_id,
+				roomLogin: room_login
+			};
+
+			const tokens = this.chat.tokenizeMessage(msg, user);
+			if ( ! tokens || ! tokens.length )
+				return;
+
+			const hasNonText = tokens.some(t => t && t.type !== 'text');
+			if ( ! hasNonText )
+				return;
+
+			const rendered = this.chat.renderTokens(tokens, pxCreateElement);
+			if ( ! rendered || ! rendered.length )
+				return;
+
+			el._ffz_pinned_text = text;
+			while ( el.firstChild )
+				el.removeChild(el.firstChild);
+
+			for (const node of rendered) {
+				if ( node == null )
+					continue;
+				if ( typeof node === 'string' )
+					el.appendChild(document.createTextNode(node));
+				else
+					el.appendChild(node);
+			}
+
+			this.debugPinnedChatLayout(el, tokens);
+		} catch(err) {
+			this.log.warn('Error processing pinned chat message.', err);
+		}
+	}
+
+	// Logs the resulting DOM layout for pinned-chat emotes so we can compare
+	// regular vs. zero-width sizing/positioning side-by-side with normal chat.
+	// Runs on the next animation frame so the browser has finalized layout
+	// (rect.width/height of 0 means the wrapper has no committed size yet).
+	debugPinnedChatLayout(el, tokens) {
+		const log = this.log;
+		const summarize = el => {
+			if ( ! el )
+				return null;
+			const rect = el.getBoundingClientRect();
+			const cs = getComputedStyle(el);
+			const inline = el.style?.cssText || '';
+			return {
+				tag: el.tagName?.toLowerCase(),
+				cls: el.getAttribute?.('class') || '',
+				alt: el.getAttribute?.('alt') || undefined,
+				rect: {
+					x: Math.round(rect.x),
+					y: Math.round(rect.y),
+					w: Math.round(rect.width * 100) / 100,
+					h: Math.round(rect.height * 100) / 100
+				},
+				computed: {
+					display: cs.display,
+					position: cs.position,
+					verticalAlign: cs.verticalAlign,
+					width: cs.width,
+					height: cs.height,
+					marginLeft: cs.marginLeft,
+					marginTop: cs.marginTop,
+					top: cs.top,
+					left: cs.left,
+					transform: cs.transform
+				},
+				inlineStyle: inline || undefined
+			};
+		};
+
+		const collect = () => {
+			const wrappers = el.querySelectorAll('[data-test-selector="emote-button"]');
+			const dump = [];
+
+			wrappers.forEach((wrap, idx) => {
+				const baseImg = wrap.querySelector(':scope > img.chat-line__message--emote, :scope > img.ffz-emote, :scope > img.chat-image');
+				const overlaySpans = Array.from(wrap.querySelectorAll(':scope > span'));
+				const overlayImgs = overlaySpans.map(s => s.querySelector('img'));
+
+				const tokenIdx = (() => {
+					let count = -1;
+					for (let i = 0; i < tokens.length; i++) {
+						if ( tokens[i]?.type === 'emote' ) {
+							count++;
+							if ( count === idx ) return i;
+						}
+					}
+					return -1;
+				})();
+				const token = tokenIdx >= 0 ? tokens[tokenIdx] : null;
+
+				dump.push({
+					index: idx,
+					name: token?.text ?? wrap.getAttribute('data-name') ?? baseImg?.getAttribute('alt'),
+					token: token ? {
+						text: token.text,
+						width: token.width,
+						height: token.height,
+						modifier_flags: token.modifier_flags,
+						modifiers: (token.modifiers || []).map(m => ({
+							text: m.text,
+							width: m.width,
+							height: m.height
+						}))
+					} : null,
+					wrapper: summarize(wrap),
+					base: summarize(baseImg),
+					overlays: overlaySpans.map((s, i) => ({
+						span: summarize(s),
+						img: summarize(overlayImgs[i])
+					}))
+				});
+			});
+
+			log.info('[ffz-pinned-debug] message:', el._ffz_pinned_text);
+			log.info('[ffz-pinned-debug] tokens:', tokens.map(t => ({
+				type: t.type,
+				text: t.text || (t.type === 'text' ? t.text : undefined),
+				width: t.width,
+				height: t.height,
+				modifier_flags: t.modifier_flags,
+				modifiers: (t.modifiers || []).map(m => m.text)
+			})));
+			log.info('[ffz-pinned-debug] emotes layout:', dump);
+		};
+
+		if ( typeof requestAnimationFrame === 'function' )
+			requestAnimationFrame(collect);
+		else
+			collect();
+	}
+
+	refreshPinnedChatMessage(el) {
+		if ( ! el || ! el._ffz_pinned_text )
+			return;
+
+		const text = el._ffz_pinned_text;
+		while ( el.firstChild )
+			el.removeChild(el.firstChild);
+
+		const span = document.createElement('span');
+		span.className = 'text-fragment';
+		span.setAttribute('data-a-target', 'chat-message-text');
+		span.textContent = text;
+		el.appendChild(span);
+
+		el._ffz_pinned_text = null;
+		this.processPinnedChatMessage(el);
 	}
 
 	updateInlineCallouts() {
