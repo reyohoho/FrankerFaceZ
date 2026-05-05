@@ -227,6 +227,12 @@ export default {
 		'Открыть список подписок этого пользователя.',
 	'addon.reyohoho-user-tools.action.tooltip': 'Подписки: {login}',
 
+	// ─── chat.filtering.block-digit-only-messages ──────────────────────────
+	'setting.entry.chat.filtering.block-digit-only-messages':
+		'Скрывать сообщения, состоящие только из цифр',
+	'setting.entry.chat.filtering.block-digit-only-messages.description':
+		'Скрывает сообщения, в которых только цифры и пробелы (обычные «777», «+1» и т. п.). Эквивалентно добавлению regex `^\\s*\\d+\\s*$` в список блокируемых терминов с флагом **Remove**, но управляется одним переключателем.',
+
 	// ─── chat.rich.media-previews-* ─────────────────────────────────────────
 	'setting.entry.chat.rich.media-previews.description':
 		'Показывает предпросмотр изображений и видео для прямых медиассылок, ссылок на эмоты 7TV, Imgur и kappa.lol. Если в настройках всплывающих подсказок включено отображение картинок, эта же опция управляет превью в карточках ссылок и при наведении на ссылку; для части хостов изображения идут через прокси RTE CDN.',

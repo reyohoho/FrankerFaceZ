@@ -892,13 +892,34 @@ export default class Chat extends Module {
 			}
 		});
 
+		this.settings.add('chat.filtering.block-digit-only-messages', {
+			default: false,
+			ui: {
+				path: 'Chat > Filtering > Block >> Behavior',
+				title: 'Block messages that contain only digits.',
+				description: 'Hides chat messages whose contents are nothing but digits and whitespace (commonly used for spam such as "777" or "+1"). Equivalent to adding the regex `^\\s*\\d+\\s*$` to your block list with the **Remove** flag set, but managed via this single toggle.',
+				component: 'setting-check-box'
+			}
+		});
+
 
 		this.settings.add('__filter:block-terms', {
-			requires: ['chat.filtering.highlight-basic-blocked'],
+			requires: ['chat.filtering.highlight-basic-blocked', 'chat.filtering.block-digit-only-messages'],
 			equals: 'requirements',
 			process(ctx) {
-				const val = ctx.get('chat.filtering.highlight-basic-blocked');
-				if ( ! val || ! val.length )
+				const baseList = ctx.get('chat.filtering.highlight-basic-blocked') || [];
+				const block_digit_only = !! ctx.get('chat.filtering.block-digit-only-messages');
+
+				if ( ! baseList.length && ! block_digit_only )
+					return null;
+
+				const val = block_digit_only
+					? baseList.concat([
+						{ remove: true, v: '^\\s*\\d+\\s*$', t: 'regex', c: '', s: false, h: false, w: true, p: 0 },
+						{ remove: true, v: '^\\s*\\d+\\s*$', t: 'text', c: '', s: false, h: false, w: false, p: 0 }
+					])
+					: baseList;
+				if ( ! val.length )
 					return null;
 
 				const data = [

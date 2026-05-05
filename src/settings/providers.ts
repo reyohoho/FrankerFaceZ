@@ -4,6 +4,12 @@ import { isValidBlob, deserializeBlob, serializeBlob, BlobLike, SerializedBlobLi
 import {EventEmitter} from 'utilities/events';
 import {TicketLock, has, once} from 'utilities/object';
 import type { OptionalArray, OptionalPromise, ProviderTypeMap } from '../utilities/types';
+import {
+	FFZ_BC_NAME,
+	FFZ_BRIDGE_FRAME_ID,
+	FFZ_IDB_NAME,
+	FFZ_LS_PREFIX
+} from '../utilities/rte_storage_constants';
 
 
 // ============================================================================
@@ -446,7 +452,7 @@ export class LocalStorageProvider extends SettingsProvider {
 	}
 
 	static hasContent() {
-		const prefix = 'FFZ:setting:';
+		const prefix = FFZ_LS_PREFIX;
 
 		for(const key in localStorage)
 			if ( key.startsWith(prefix) && ! IGNORE_CONTENT_KEYS.includes(key.slice(prefix.length)) && has(localStorage, key) )
@@ -466,7 +472,7 @@ export class LocalStorageProvider extends SettingsProvider {
 
 	constructor(manager: SettingsManager) {
 		super(manager);
-		const prefix = this.prefix = 'FFZ:setting:';
+		const prefix = this.prefix = FFZ_LS_PREFIX;
 
 		const cache = this._cached = new Map,
 			len = prefix.length;
@@ -485,7 +491,7 @@ export class LocalStorageProvider extends SettingsProvider {
 		this.ready = true;
 
 		if ( window.BroadcastChannel ) {
-			const bc = this._broadcaster = new BroadcastChannel('ffz-settings');
+			const bc = this._broadcaster = new BroadcastChannel(FFZ_BC_NAME);
 			bc.addEventListener('message',
 				this._boundHandleMessage = this.handleMessage.bind(this));
 
@@ -690,7 +696,7 @@ export class IndexedDBProvider extends AdvancedSettingsProvider {
 
 	static hasContent() {
 		return new Promise<boolean>((resolve) => {
-			const request = window.indexedDB.open('FFZ', DB_VERSION);
+			const request = window.indexedDB.open(FFZ_IDB_NAME, DB_VERSION);
 			request.onerror = () => resolve(false);
 
 			request.onupgradeneeded = e => {
@@ -773,7 +779,7 @@ export class IndexedDBProvider extends AdvancedSettingsProvider {
 
 		if ( start ) {
 			if ( window.BroadcastChannel ) {
-				const bc = this._broadcaster = new BroadcastChannel('ffz-settings');
+				const bc = this._broadcaster = new BroadcastChannel(FFZ_BC_NAME);
 				bc.addEventListener('message',
 					this._boundHandleMessage = this.handleMessage.bind(this));
 
@@ -1010,7 +1016,7 @@ export class IndexedDBProvider extends AdvancedSettingsProvider {
 		let this_wait: Promise<IDBDatabase>;
 		return this._db_wait = this_wait = new Promise<IDBDatabase>((resolve, reject) => {
 
-			const request = window.indexedDB.open('FFZ', DB_VERSION);
+			const request = window.indexedDB.open(FFZ_IDB_NAME, DB_VERSION);
 			this._onStart(request);
 
 			request.onerror = event => {
@@ -1058,7 +1064,7 @@ export class IndexedDBProvider extends AdvancedSettingsProvider {
 
 					else {
 						// Try deleting the database and making a new one.
-						const delreq = window.indexedDB.deleteDatabase('FFZ');
+						const delreq = window.indexedDB.deleteDatabase(FFZ_IDB_NAME);
 						this._onStart(delreq);
 
 						delreq.onerror = event => {
@@ -1497,7 +1503,7 @@ export class CrossOriginStorageBridge extends RemoteSettingsProvider {
 		frame.src = (this.manager.root as any).host === 'youtube' ?
 			'//www.youtube.com/__ffz_bridge/' :
 			'//www.twitch.tv/p/ffz_bridge/';
-		frame.id = 'ffz-settings-bridge';
+		frame.id = FFZ_BRIDGE_FRAME_ID;
 		frame.style.width = '0';
 		frame.style.height = '0';
 
