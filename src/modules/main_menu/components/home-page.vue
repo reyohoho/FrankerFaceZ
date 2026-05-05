@@ -14,6 +14,125 @@
 				<markdown :source="t('home.about', md)" />
 			</section>
 
+			<section class="ffz--rte-info tw-pd-t-1 tw-border-t tw-mg-t-1">
+				<h3 class="tw-pd-b-05 ffz-font-size-3">
+					{{ t('home.rte.title', 'ReYohoho Twitch Extension') }}
+				</h3>
+
+				<div class="ffz--rte-subscription tw-pd-1 tw-c-background-base tw-border-radius-medium tw-mg-b-1">
+					<h4 class="tw-pd-b-05 ffz-font-size-4">
+						{{ t('home.rte.sub.title', 'Подписка RTE') }}
+					</h4>
+
+					<div v-if="rteSubState === 'loading'" class="tw-c-text-alt-2">
+						{{ t('home.rte.sub.loading', 'Проверка статуса подписки…') }}
+					</div>
+
+					<div v-else-if="rteSubState === 'no-user'" class="tw-c-text-alt-2">
+						{{ t('home.rte.sub.notLogged', 'Войдите в Twitch, чтобы увидеть статус подписки.') }}
+					</div>
+
+					<div v-else-if="rteSubState === 'error'" class="tw-c-text-alt-2">
+						<p>{{ t('home.rte.sub.error', '⚠️ Не удалось получить статус подписки.') }}</p>
+						<button class="tw-mg-t-05 tw-button" @click="fetchRteSubscription(true)">
+							<span class="tw-button__text">{{ t('home.rte.sub.retry', 'Попробовать снова') }}</span>
+						</button>
+					</div>
+
+					<div v-else-if="rteSubState === 'active'">
+						<div class="tw-flex tw-align-items-center tw-mg-b-05" style="gap: 0.5rem;">
+							<span class="tw-pill tw-pill--brand">
+								{{ t('home.rte.sub.tier', 'Tier {tier}', { tier: rteSubData.tier }) }}
+							</span>
+							<span class="tw-c-text-success tw-semibold">
+								{{ t('home.rte.sub.active', 'Активна') }}
+							</span>
+						</div>
+						<p v-if="rteSubData.current_period_end" class="tw-c-text-alt">
+							<strong>{{ t('home.rte.sub.until', 'Действительна до:') }}</strong>
+							{{ formatRteDate(rteSubData.current_period_end) }}
+						</p>
+						<p v-if="rteUserId" class="tw-c-text-alt">
+							<strong>Twitch ID:</strong> {{ rteUserId }}
+						</p>
+						<div class="tw-flex tw-mg-t-1 tw-flex-wrap" style="gap: 0.5rem;">
+							<button class="tw-button" @click="fetchRteSubscription(true)">
+								<span class="tw-button__text">{{ t('home.rte.sub.refresh', 'Обновить статус') }}</span>
+							</button>
+							<a
+								class="tw-button tw-button--text"
+								href="https://ext.rte.net.ru"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<span class="tw-button__text">{{ t('home.rte.sub.manage', 'Управление подпиской') }}</span>
+							</a>
+						</div>
+					</div>
+
+					<div v-else>
+						<p class="tw-mg-b-05">
+							🔒 {{ t('home.rte.sub.none', 'У вас нет активной подписки.') }}
+						</p>
+						<p class="tw-c-text-alt tw-mg-b-05">
+							{{ t('home.rte.sub.cta', 'Оформите подписку, чтобы получить доступ к расширенным возможностям и поддержать разработку.') }}
+						</p>
+						<ul class="tw-mg-l-2 tw-c-text-alt">
+							<li>{{ t('home.rte.sub.benefits.paint', 'Раскраска ника в чате (видна другим пользователям расширения).') }}</li>
+							<li>{{ t('home.rte.sub.benefits.badge', 'Кастомный бейдж в чате (видна другим пользователям расширения).') }}</li>
+						</ul>
+						<p v-if="rteUserId" class="tw-c-text-alt tw-mg-t-05">
+							<strong>{{ t('home.rte.sub.yourId', 'Ваш Twitch ID:') }}</strong>
+							{{ rteUserId }}
+						</p>
+						<div class="tw-flex tw-mg-t-1 tw-flex-wrap" style="gap: 0.5rem;">
+							<a
+								class="tw-button tw-button--primary"
+								href="https://ext.rte.net.ru"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<span class="tw-button__text">{{ t('home.rte.sub.subscribe', 'Оформить подписку') }}</span>
+							</a>
+							<button class="tw-button tw-button--text" @click="fetchRteSubscription(true)">
+								<span class="tw-button__text">{{ t('home.rte.sub.check', 'Проверить статус') }}</span>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="ffz--rte-links tw-pd-1 tw-c-background-base tw-border-radius-medium">
+					<h4 class="tw-pd-b-05 ffz-font-size-4">
+						{{ t('home.rte.links.title', 'Полезные ссылки') }}
+					</h4>
+					<ul class="ffz--rte-links__list">
+						<li>
+							<a href="https://ext.rte.net.ru" target="_blank" rel="noopener noreferrer">
+								🌐 {{ t('home.rte.links.website', 'Сайт расширения') }}
+							</a>
+							<span class="tw-c-text-alt-2 tw-mg-l-05">https://ext.rte.net.ru</span>
+						</li>
+						<li>
+							<a href="https://t.me/reyohoho_twitch_ext" target="_blank" rel="noopener noreferrer">
+								✈️ {{ t('home.rte.links.telegram', 'Новости и обновления в Telegram') }}
+							</a>
+							<span class="tw-c-text-alt-2 tw-mg-l-05">https://t.me/reyohoho_twitch_ext</span>
+						</li>
+						<li class="ffz--rte-links__group">
+							<span class="tw-semibold">
+								🐙 {{ t('home.rte.links.github', 'GitHub') }}
+							</span>
+							<ul class="ffz--rte-links__list ffz--rte-links__list--nested">
+								<li v-for="repo in rteGithubRepos" :key="repo.url">
+									<a :href="repo.url" target="_blank" rel="noopener noreferrer">{{ repo.label }}</a>
+									<span class="tw-c-text-alt-2 tw-mg-l-05">{{ repo.url }}</span>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			</section>
+
 			<div
 				v-if="unseen"
 				class="tw-pd-t-1 tw-border-t tw-mg-t-1"
@@ -216,6 +335,14 @@ import HOME_MD from '../home.md';
 import {createElement as e} from 'utilities/dom';
 import { EXTENSION } from 'utilities/constants';
 
+const RTE_GITHUB_REPOS = [
+	{label: 'FFZ-Extension (build scripts)', url: 'https://github.com/reyohoho/FFZ-Extension'},
+	{label: 'FFZ-Add-Ons', url: 'https://github.com/reyohoho/FFZ-Add-Ons'},
+	{label: 'FrankerFaceZ (client)', url: 'https://github.com/reyohoho/FrankerFaceZ'}
+];
+
+const RTE_PROXY_FALLBACK = 'https://ext.rte.net.ru:8443';
+
 export default {
 	props: ['item', 'context'],
 
@@ -227,6 +354,11 @@ export default {
 			new_addons: null,
 			unseen: this.item.getUnseen(),
 			//not_extension: ! EXTENSION
+
+			rteSubState: 'loading',
+			rteSubData: {},
+			rteUserId: null,
+			rteGithubRepos: RTE_GITHUB_REPOS
 		}
 	},
 
@@ -238,6 +370,8 @@ export default {
 		const ffz = this.context.getFFZ();
 		ffz.on('main_menu:update-unseen', this.updateUnseen, this);
 		ffz.on('addons:data-loaded', this.updateAddons, this);
+
+		this.fetchRteSubscription(true);
 	},
 
 	beforeDestroy() {
@@ -310,6 +444,74 @@ export default {
 
 		updateTheme() {
 			this.theme = this.context.context.get('theme.is-dark') ? 'dark' : 'light'
+		},
+
+		formatRteDate(value) {
+			if ( ! value )
+				return '';
+			try {
+				return new Date(value).toLocaleDateString();
+			} catch ( err ) {
+				return String(value);
+			}
+		},
+
+		getRteProxyBase() {
+			const ffz = this.context.getFFZ(),
+				proxy = ffz.resolve('addon.reyohoho-emotes-proxy');
+			return proxy?._proxyBase || RTE_PROXY_FALLBACK;
+		},
+
+		async fetchRteSubscription(force = false) {
+			if ( this.rteSubState === 'loading' && ! force )
+				return;
+
+			const ffz = this.context.getFFZ(),
+				site = ffz.resolve('site'),
+				user = site?.getUser?.();
+
+			this.rteUserId = user?.id || null;
+
+			if ( ! user?.id ) {
+				this.rteSubState = 'no-user';
+				this.rteSubData = {};
+				return;
+			}
+
+			const proxyBase = this.getRteProxyBase();
+			if ( ! proxyBase ) {
+				this.rteSubState = 'error';
+				this.rteSubData = {};
+				return;
+			}
+
+			this.rteSubState = 'loading';
+			this.rteSubData = {};
+
+			try {
+				const url = `${proxyBase}/api/subscription/check/${encodeURIComponent(user.id)}`,
+					resp = await fetch(url);
+
+				if ( ! resp.ok ) {
+					this.rteSubState = 'error';
+					return;
+				}
+
+				const data = await resp.json();
+				this.rteSubData = data || {};
+
+				if ( data?.error )
+					this.rteSubState = 'error';
+				else if ( data?.has_subscription )
+					this.rteSubState = 'active';
+				else
+					this.rteSubState = 'inactive';
+			} catch ( err ) {
+				const ffz2 = this.context.getFFZ();
+				ffz2?.log?.warn?.('[home] subscription check failed:', err);
+				this.rteSubState = 'error';
+				this.rteSubData = {};
+			}
 		}
 	}
 }

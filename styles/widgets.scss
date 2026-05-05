@@ -342,6 +342,36 @@ textarea.ffz-input {
 	.tweet-column {
 		width: 300px;
 	}
+
+	.ffz--rte-info {
+		.ffz--rte-links__list {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+
+		.ffz--rte-links__list li {
+			padding: 0.25rem 0;
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+
+		.ffz--rte-links__list a {
+			font-weight: 600;
+		}
+
+		.ffz--rte-links__group {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.ffz--rte-links__list--nested {
+			margin: 0.25rem 0 0 1.25rem;
+			width: 100%;
+		}
+	}
 }
 
 .ffz--discord-button {
