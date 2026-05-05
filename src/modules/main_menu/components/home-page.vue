@@ -1,6 +1,29 @@
 <template lang="html">
 	<div class="ffz--home tw-flex tw-flex-nowrap">
 		<div class="tw-flex-grow-1">
+			<div
+				v-if="showMigrationNotice"
+				class="ffz--rte-migration-notice tw-pd-1 tw-mg-b-1 tw-border-radius-medium tw-c-background-alt-2"
+			>
+				<div class="tw-flex tw-align-items-start tw-mg-b-05">
+					<figure class="ffz-i-attention ffz-font-size-3 tw-mg-r-05" />
+					<h3 class="ffz-font-size-3 tw-flex-grow-1">
+						{{ t('home.rte.migration.title', 'Расширение переехало на FrankerFaceZ') }}
+					</h3>
+				</div>
+				<p class="tw-mg-b-05">
+					{{ t('home.rte.migration.message', 'ReYohoho Twitch Extension теперь работает на основе FrankerFaceZ. Из-за лицензионных проблем с BetterTTV пришлось переехать на новую платформу.') }}
+				</p>
+				<p class="tw-mg-b-05">
+					{{ t('home.rte.migration.settings', 'Почти все настройки, которые были в оригинальном RTE, доступны и в этой версии, но некоторые из них придётся настроить заново.') }}
+				</p>
+				<div class="tw-flex tw-justify-content-end tw-mg-t-1">
+					<button class="tw-button tw-button--primary" @click="dismissMigrationNotice">
+						<span class="tw-button__text">{{ t('home.rte.migration.dismiss', 'Понятно, больше не показывать') }}</span>
+					</button>
+				</div>
+			</div>
+
 			<div class="tw-align-center">
 				<h2 class="ffz-i-zreknarf ffz-i-pd-1 ffz-font-size-2">
 					FrankerFaceZ
@@ -343,6 +366,8 @@ const RTE_GITHUB_REPOS = [
 
 const RTE_PROXY_FALLBACK = 'https://ext.rte.net.ru:8443';
 
+const RTE_MIGRATION_NOTICE_KEY = 'rte-migration-notice-seen';
+
 export default {
 	props: ['item', 'context'],
 
@@ -358,7 +383,9 @@ export default {
 			rteSubState: 'loading',
 			rteSubData: {},
 			rteUserId: null,
-			rteGithubRepos: RTE_GITHUB_REPOS
+			rteGithubRepos: RTE_GITHUB_REPOS,
+
+			showMigrationNotice: false
 		}
 	},
 
@@ -370,6 +397,8 @@ export default {
 		const ffz = this.context.getFFZ();
 		ffz.on('main_menu:update-unseen', this.updateUnseen, this);
 		ffz.on('addons:data-loaded', this.updateAddons, this);
+
+		this.checkMigrationNotice();
 
 		this.fetchRteSubscription(true);
 	},
@@ -444,6 +473,40 @@ export default {
 
 		updateTheme() {
 			this.theme = this.context.context.get('theme.is-dark') ? 'dark' : 'light'
+		},
+
+		checkMigrationNotice() {
+			try {
+				const ffz = this.context.getFFZ(),
+					settings = ffz?.resolve?.('settings'),
+					provider = settings?.provider;
+
+				if ( ! provider ) {
+					this.showMigrationNotice = true;
+					return;
+				}
+
+				this.showMigrationNotice = ! provider.get(RTE_MIGRATION_NOTICE_KEY, false);
+			} catch ( err ) {
+				const ffz = this.context.getFFZ();
+				ffz?.log?.warn?.('[home] failed to read migration notice flag:', err);
+				this.showMigrationNotice = true;
+			}
+		},
+
+		dismissMigrationNotice() {
+			this.showMigrationNotice = false;
+
+			try {
+				const ffz = this.context.getFFZ(),
+					settings = ffz?.resolve?.('settings'),
+					provider = settings?.provider;
+
+				provider?.set?.(RTE_MIGRATION_NOTICE_KEY, true);
+			} catch ( err ) {
+				const ffz = this.context.getFFZ();
+				ffz?.log?.warn?.('[home] failed to persist migration notice flag:', err);
+			}
 		},
 
 		formatRteDate(value) {

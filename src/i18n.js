@@ -11,6 +11,25 @@ import Module from 'utilities/module';
 
 import NewTransCore from 'utilities/translation-core';
 
+// Locales we ship inside the bundle (RTE/ReYohoho addons). Merged on top of
+// the FrankerFaceZ CDN payload inside `loadLocale`. See `i18n-local/` for the
+// actual translation dictionaries.
+import { getLocalLocale } from './i18n-local';
+
+// Locales that we want users to be able to pick even if FFZ's translation
+// project doesn't list them. We synthesize a `localeData` entry for each so
+// `setLocale(...)` won't reject them as unsupported.
+const LOCAL_LOCALE_FALLBACK = {
+	ru: {
+		id: 'ru',
+		name: 'Russian',
+		native_name: 'Русский',
+		coverage: 100,
+		rtl: false,
+		hashes: {}
+	}
+};
+
 const fetchJSON = (url, options) => fetch(url, options).then(r => r.ok ? r.json() : null).catch(() => null);
 
 const STACK_SPLITTER = /\s*at\s+(.+?)\s+\((.+)\)$/,
@@ -656,6 +675,15 @@ export default class TranslationManager extends Module {
 			this.availableLocales.push(key);
 		}
 
+		// Make sure every locale we ship strings for is selectable, even if
+		// the FFZ translation project does not currently expose it.
+		for (const [key, fallback] of Object.entries(LOCAL_LOCALE_FALLBACK)) {
+			if (!this.availableLocales.includes(key)) {
+				this.localeData[key] = fallback;
+				this.availableLocales.push(key);
+			}
+		}
+
 		this.emit(':locales-loaded');
 	}
 
@@ -664,50 +692,59 @@ export default class TranslationManager extends Module {
 		// Normalize the locale.
 		locale = locale.toLowerCase();
 
-		if ( locale === 'en' )
-			return {};
-
-		const hashes = this.localeData[locale]?.hashes;
-		if (! hashes) {
-			this.log.info(`Cannot Load Locale: ${locale}`);
-			return {};
-		}
-
-		if (! chunk)
-			chunk = this.chunks;
-		else if (! Array.isArray(chunk))
-			chunk = [chunk];
-
-		const id = this.localeData[locale].id;
-		const promises = [];
-
-		for(const chnk of chunk) {
-			const hash = hashes[chnk];
-			if (! hash)
-				continue;
-
-			promises.push(fetchJSON(`https://cdn2.frankerfacez.com/static/locale/${id}/${chnk}.${hash}.json`));
-		}
-
-		const chunks = await Promise.all(promises);
 		const result = {};
 
-		let ignored = 0;
+		if (locale !== 'en') {
+			const hashes = this.localeData[locale]?.hashes;
+			if (hashes && Object.keys(hashes).length > 0) {
+				const chunkList = !chunk
+					? this.chunks
+					: Array.isArray(chunk) ? chunk : [chunk];
 
-		for(const chunk of chunks) {
-			if (! chunk)
-				continue;
+				const id = this.localeData[locale].id;
+				const promises = [];
 
-			for(const [key,val] of Object.entries(chunk)) {
-				if (typeof val === 'string' && val.length > 0)
-					result[key] = val;
-				else
-					ignored++;
+				for (const chnk of chunkList) {
+					const hash = hashes[chnk];
+					if (!hash)
+						continue;
+					promises.push(fetchJSON(`https://cdn2.frankerfacez.com/static/locale/${id}/${chnk}.${hash}.json`));
+				}
+
+				const chunks = await Promise.all(promises);
+				let ignored = 0;
+				for (const c of chunks) {
+					if (!c)
+						continue;
+					for (const [key, val] of Object.entries(c)) {
+						if (typeof val === 'string' && val.length > 0)
+							result[key] = val;
+						else
+							ignored++;
+					}
+				}
+				if (ignored > 0)
+					this.log.debug(`Ignored ${ignored} invalid values while loading ${locale} chunks.`);
+			} else {
+				this.log.info(`No CDN translations for locale: ${locale} -- using local strings only`);
 			}
 		}
 
-		if (ignored > 0)
-			this.log.debug(`Ignored ${ignored} invalid values while loading ${locale} chunks.`);
+		// Merge our bundled translations on top so addon-specific strings are
+		// always available, regardless of CDN coverage. Local values win over
+		// CDN values for the same key.
+		const local = getLocalLocale(locale);
+		if (local) {
+			let merged = 0;
+			for (const [key, val] of Object.entries(local)) {
+				if (typeof val === 'string' && val.length > 0) {
+					result[key] = val;
+					merged++;
+				}
+			}
+			if (merged > 0)
+				this.log.debug(`Merged ${merged} local phrases for locale: ${locale}`);
+		}
 
 		return result;
 	}
