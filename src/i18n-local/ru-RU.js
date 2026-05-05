@@ -225,5 +225,19 @@ export default {
 	'addon.reyohoho-user-tools.action.title': 'Показать подписки',
 	'addon.reyohoho-user-tools.action.description':
 		'Открыть список подписок этого пользователя.',
-	'addon.reyohoho-user-tools.action.tooltip': 'Подписки: {login}'
+	'addon.reyohoho-user-tools.action.tooltip': 'Подписки: {login}',
+
+	// ─── chat.rich.media-previews-* (стили предпросмотра ссылок) ──────────
+	'setting.entry.chat.rich.media-previews-style':
+		'Стиль предпросмотра медиа',
+	'setting.entry.chat.rich.media-previews-style.description':
+		'Выберите, как отображать предпросмотр прямых медиа-ссылок. **Карточка** — стандартная карточка FrankerFaceZ с заголовком и галереей. **Встроенно** — изображение или видео сразу под сообщением, как в ReYohoho Twitch Extension.',
+	'setting.entry.chat.rich.media-previews-max-width':
+		'Максимальная ширина встроенного предпросмотра',
+	'setting.entry.chat.rich.media-previews-max-width.description':
+		'Максимальная ширина (в пикселях) встроенного предпросмотра медиа.',
+	'setting.entry.chat.rich.media-previews-max-height':
+		'Максимальная высота встроенного предпросмотра',
+	'setting.entry.chat.rich.media-previews-max-height.description':
+		'Максимальная высота (в пикселях) встроенного предпросмотра медиа.'
 };

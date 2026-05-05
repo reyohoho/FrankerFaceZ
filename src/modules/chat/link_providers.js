@@ -9,11 +9,24 @@ const NEW_CLIP_URL = /^(?:https?:\/\/)?(?:(?:www|m)\.)?twitch\.tv\/\w+\/clip\/([
 const VIDEO_URL = /^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/(?:\w+\/v|videos)\/(\w+)/;
 const USER_URL = /^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/([^/]+)$/;
 
-const DIRECT_IMAGE_URL = /^https?:\/\/[a-zA-Z0-9./\-_%@?&=:+~]+\.(?:jpg|jpeg|png|gif|bmp|webp|jfif|avif)(?:\?[^#]*)?(?:#.*)?$/i;
-const DIRECT_VIDEO_URL = /^https?:\/\/[a-zA-Z0-9./\-_%@?&=:+~]+\.(?:mp4|mov|webm)(?:\?[^#]*)?(?:#.*)?$/i;
-const SEVENTV_EMOTE_URL = /^https?:\/\/7tv\.app\/emotes\/([a-zA-Z0-9]+)/i;
-const IMGUR_URL = /^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]+)$/i;
-const KAPPA_LOL_URL = /^https?:\/\/(?:[a-zA-Z0-9]+\.)?kappa\.lol\/([a-zA-Z0-9]+)/i;
+import {
+	DIRECT_IMAGE_URL,
+	DIRECT_VIDEO_URL,
+	SEVENTV_EMOTE_URL,
+	IMGUR_URL,
+	KAPPA_LOL_URL
+} from './link_media_regex';
+
+// Returns truthy when the user has both inline media previews enabled *and*
+// asked for the FrankerFaceZ-style rich card. Inline mode is handled by the
+// `inline_media_preview` chat tokenizer, so the card providers below have to
+// stay out of the way to avoid double-rendering the same media.
+function shouldUseCardPreview(ctx) {
+	if ( ! ctx.get('chat.rich.media-previews') )
+		return false;
+	const style = ctx.get('chat.rich.media-previews-style');
+	return style === 'card' || style == null;
+}
 
 const BAD_USERS = [
 	'directory', '_deck', 'p', 'downloads', 'jobs', 'turbo', 'settings', 'friends',
@@ -22,6 +35,8 @@ const BAD_USERS = [
 
 import GET_CLIP from './clip_info.gql';
 import GET_VIDEO from './video_info.gql';
+
+import {applyRteImageCdnProxy} from './rte_image_cdn_proxy';
 
 
 // ============================================================================
@@ -512,25 +527,27 @@ export const DirectImage = {
 	type: 'direct-image',
 
 	test(url) {
-		if ( ! this.context.get('chat.rich.media-previews') )
+		if ( ! shouldUseCardPreview(this.context) )
 			return null;
 		const match = DIRECT_IMAGE_URL.exec(url);
 		return match ? url : null;
 	},
 
 	async process(url) {
+		const display_url = applyRteImageCdnProxy(url);
+
 		return {
 			v: 5,
 			short: {
 				type: 'header',
-				image: {type: 'image', url, sfw: true, aspect: 16/9},
+				image: {type: 'image', url: display_url, sfw: true, aspect: 16/9},
 				title: url.split('/').pop()
 			},
 			full: [{
 				type: 'gallery',
 				items: [{
 					type: 'image',
-					url,
+					url: display_url,
 					sfw: true
 				}]
 			}]
@@ -547,7 +564,7 @@ export const DirectVideo = {
 	type: 'direct-video',
 
 	test(url) {
-		if ( ! this.context.get('chat.rich.media-previews') )
+		if ( ! shouldUseCardPreview(this.context) )
 			return null;
 		const match = DIRECT_VIDEO_URL.exec(url);
 		return match ? url : null;
@@ -586,26 +603,27 @@ export const SevenTVEmote = {
 	type: '7tv-emote',
 
 	test(url) {
-		if ( ! this.context.get('chat.rich.media-previews') )
+		if ( ! shouldUseCardPreview(this.context) )
 			return null;
 		const match = SEVENTV_EMOTE_URL.exec(url);
 		return match ? match[1] : null;
 	},
 
 	async process(emoteId) {
-		const emoteUrl = `https://cdn.7tv.app/emote/${emoteId}/4x.webp`;
+		const emoteUrl = `https://cdn.7tv.app/emote/${emoteId}/4x.webp`,
+			displayUrl = applyRteImageCdnProxy(emoteUrl);
 		return {
 			v: 5,
 			short: {
 				type: 'header',
-				image: {type: 'image', url: emoteUrl, sfw: true, aspect: 1},
+				image: {type: 'image', url: displayUrl, sfw: true, aspect: 1},
 				title: '7TV Emote'
 			},
 			full: [{
 				type: 'gallery',
 				items: [{
 					type: 'image',
-					url: emoteUrl,
+					url: displayUrl,
 					sfw: true
 				}]
 			}]
@@ -622,7 +640,7 @@ export const Imgur = {
 	type: 'imgur',
 
 	test(url) {
-		if ( ! this.context.get('chat.rich.media-previews') )
+		if ( ! shouldUseCardPreview(this.context) )
 			return null;
 		const match = IMGUR_URL.exec(url);
 		return match ? match[1] : null;
@@ -659,24 +677,26 @@ export const KappaLol = {
 	type: 'kappa-lol',
 
 	test(url) {
-		if ( ! this.context.get('chat.rich.media-previews') )
+		if ( ! shouldUseCardPreview(this.context) )
 			return null;
 		return KAPPA_LOL_URL.test(url) ? url : null;
 	},
 
 	async process(url) {
+		const display_url = applyRteImageCdnProxy(url);
+
 		return {
 			v: 5,
 			short: {
 				type: 'header',
-				image: {type: 'image', url, sfw: true, aspect: 16/9},
+				image: {type: 'image', url: display_url, sfw: true, aspect: 16/9},
 				title: 'kappa.lol'
 			},
 			full: [{
 				type: 'gallery',
 				items: [{
 					type: 'image',
-					url,
+					url: display_url,
 					sfw: true
 				}]
 			}]

@@ -12,6 +12,8 @@ import {EmoteTypes, IS_FIREFOX, REPLACEMENT_BASE, REPLACEMENTS, WEIRD_EMOTE_SIZE
 import {CATEGORIES, JOINER_REPLACEMENT} from './emoji';
 
 import { MODIFIER_FLAGS } from './emotes';
+import {DIRECT_IMAGE_URL, DIRECT_VIDEO_URL, SEVENTV_EMOTE_URL, IMGUR_URL, KAPPA_LOL_URL} from './link_media_regex';
+import {applyRteImageCdnProxy} from './rte_image_cdn_proxy';
 
 const SHRINK_X = MODIFIER_FLAGS.ShrinkX,
 	SLIDE_X = MODIFIER_FLAGS.Slide,
@@ -2279,5 +2281,151 @@ export const TwitchEmotes = {
 		}
 
 		return out;
+	}
+}
+
+
+// ============================================================================
+// Inline Media Preview
+// ============================================================================
+//
+// Companion to the `chat.rich.*` link providers. When the user picks the
+// "inline" media-preview style, the FrankerFaceZ rich card providers bow out
+// and this tokenizer takes over: matching media URLs (direct image/video,
+// 7TV emote pages, Imgur, kappa.lol) get an extra `inline_media_preview`
+// token inserted right after the original link. That token renders as a
+// block-level <img>/<video> beneath the message — same shape as the
+// ReYohoho Twitch Extension preview, but plugged into FFZ's normal token
+// pipeline so deletes/scroll/etc. keep working.
+
+function detectInlineMedia(url) {
+	if ( ! url )
+		return null;
+
+	if ( DIRECT_IMAGE_URL.test(url) )
+		return { kind: 'image', src: url, href: url };
+
+	if ( DIRECT_VIDEO_URL.test(url) )
+		return { kind: 'video', src: url, href: url };
+
+	let match = SEVENTV_EMOTE_URL.exec(url);
+	if ( match )
+		return { kind: 'emote', src: `https://cdn.7tv.app/emote/${match[1]}/4x.webp`, href: url };
+
+	match = IMGUR_URL.exec(url);
+	if ( match )
+		return { kind: 'image', src: `https://i.imgur.com/${match[1]}.jpg`, href: url };
+
+	if ( KAPPA_LOL_URL.test(url) )
+		return { kind: 'image', src: url, href: url };
+
+	return null;
+}
+
+
+export const InlineMediaPreview = {
+	type: 'inline_media_preview',
+	// Run after Links (50) but before low-priority cosmetic tokenizers; we
+	// only need link tokens to exist by the time we get here.
+	priority: 45,
+
+	render(token, createElement) {
+		const max_width = this.context.get('chat.rich.media-previews-max-width') || 300,
+			max_height = this.context.get('chat.rich.media-previews-max-height') || 250;
+
+		const style = {
+			display: 'block',
+			marginTop: '0.25rem',
+			maxWidth: `${max_width}px`,
+			maxHeight: `${max_height}px`,
+			height: 'auto',
+			width: 'auto'
+		};
+
+		if ( token.kind === 'video' )
+			return (<span class="ffz--inline-media-preview">
+				<video
+					src={token.src}
+					controls
+					preload="metadata"
+					style={style}
+				/>
+			</span>);
+
+		const cls = token.kind === 'emote'
+			? 'ffz--inline-media-preview ffz--inline-media-preview--emote'
+			: 'ffz--inline-media-preview';
+
+		return (<span class={cls}>
+			<a
+				href={token.href}
+				target="_blank"
+				rel="noopener noreferrer"
+				onClick={this.handleLinkClick}
+			>
+				<img
+					src={token.src}
+					alt=""
+					loading="lazy"
+					style={style}
+				/>
+			</a>
+		</span>);
+	},
+
+	process(tokens, msg) {
+		if ( ! tokens || ! tokens.length )
+			return;
+		if ( ! this.context.get('chat.rich.enabled') )
+			return;
+		if ( ! this.context.get('chat.rich.media-previews') )
+			return;
+		if ( this.context.get('chat.rich.media-previews-style') !== 'inline' )
+			return;
+		if ( this.context.get('chat.rich.minimum-level') > this.getUserLevel(msg) )
+			return;
+
+		const hide_link = this.context.get('chat.rich.hide-tokens');
+		// Multiple posts of the same link in one message should only render
+		// a single preview — match the de-duping behaviour of the rich card
+		// pipeline (which only keeps the first matching token).
+		const seen = new Set();
+
+		const out = [];
+		let any = false;
+
+		for(const token of tokens) {
+			out.push(token);
+
+			if ( token.type !== 'link' || token.hidden )
+				continue;
+
+			const url = token.url;
+			if ( ! url || seen.has(url) )
+				continue;
+
+			const detected = detectInlineMedia(url);
+			if ( ! detected )
+				continue;
+
+			seen.add(url);
+			any = true;
+
+			if ( hide_link )
+				token.hidden = true;
+
+			const display_src = detected.kind === 'video'
+				? detected.src
+				: applyRteImageCdnProxy(detected.src);
+
+			out.push({
+				type: 'inline_media_preview',
+				kind: detected.kind,
+				src: display_src,
+				href: detected.href
+			});
+		}
+
+		return any ? out : tokens;
 	}
 }

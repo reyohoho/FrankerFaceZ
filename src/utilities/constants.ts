@@ -138,7 +138,9 @@ export const RERENDER_SETTINGS = [
 	'chat.filtering.show-reasons',
 	'chat.emotes.allow-gigantify',
 	'chat.shared-chat.username-tooltip',
-	'chat.shared-chat.style'
+	'chat.shared-chat.style',
+	'chat.rich.media-previews-max-width',
+	'chat.rich.media-previews-max-height'
 ] as const;
 
 /**
@@ -167,6 +169,8 @@ export const UPDATE_TOKEN_SETTINGS = [
 	'chat.rich.want-mid',
 	'chat.rich.hide-tokens',
 	'chat.rich.all-links',
+	'chat.rich.media-previews',
+	'chat.rich.media-previews-style',
 	'chat.rich.minimum-level',
 	'chat.filtering.process-own',
 	'chat.filtering.mention-priority',

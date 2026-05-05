@@ -280,6 +280,48 @@ export default class Chat extends Module {
 			}
 		});
 
+		this.settings.add('chat.rich.media-previews-style', {
+			default: 'card',
+			requires: ['chat.rich.media-previews'],
+			process(ctx, val) {
+				return ctx.get('chat.rich.media-previews') ? val : 'card';
+			},
+			ui: {
+				path: 'Chat > Appearance >> Rich Content',
+				title: 'Media preview style',
+				description: 'Choose how direct media link previews are displayed. **Card** shows the FrankerFaceZ rich content card. **Inline** renders the image or video directly under the message, similar to ReYohoho Twitch Extension.',
+				component: 'setting-select-box',
+				data: [
+					{value: 'card', title: 'Card (Default)'},
+					{value: 'inline', title: 'Inline image / video'}
+				]
+			}
+		});
+
+		this.settings.add('chat.rich.media-previews-max-width', {
+			default: 300,
+			ui: {
+				path: 'Chat > Appearance >> Rich Content',
+				title: 'Inline preview maximum width',
+				description: 'Maximum width (in pixels) for inline media previews.',
+				component: 'setting-text-box',
+				process: 'to_int',
+				bounds: [50, 2000]
+			}
+		});
+
+		this.settings.add('chat.rich.media-previews-max-height', {
+			default: 250,
+			ui: {
+				path: 'Chat > Appearance >> Rich Content',
+				title: 'Inline preview maximum height',
+				description: 'Maximum height (in pixels) for inline media previews.',
+				component: 'setting-text-box',
+				process: 'to_int',
+				bounds: [50, 2000]
+			}
+		});
+
 		this.settings.add('chat.rich.minimum-level', {
 			default: 0,
 			ui: {
