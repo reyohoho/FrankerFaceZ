@@ -54,7 +54,6 @@ export default class Line extends Module {
 		for(const setting of UPDATE_BADGE_SETTINGS)
 			this.chat.context.on(`changed:${setting}`, this.updateLineBadges, this);
 
-		this.chat.context.on('changed:tooltip.link-images', this.maybeUpdateLines, this);
 		this.chat.context.on('changed:tooltip.link-nsfw-images', this.maybeUpdateLines, this);
 
 		this.on('chat:get-messages', (include_chat, include_whisper, include_video, messages) => {

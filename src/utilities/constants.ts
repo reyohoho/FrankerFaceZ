@@ -159,6 +159,7 @@ export const UPDATE_BADGE_SETTINGS = [
  * their cached token lists and then re-render.
  */
 export const UPDATE_TOKEN_SETTINGS = [
+	'tooltip.images',
 	'chat.emotes.enabled',
 	'chat.emotes.2x',
 	'chat.emotes.animated',

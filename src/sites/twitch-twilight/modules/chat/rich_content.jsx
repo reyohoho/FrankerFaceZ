@@ -6,6 +6,7 @@
 
 import Module from 'utilities/module';
 import {timeout, has} from 'utilities/object';
+import {linkPreviewAllowsMedia} from '../../../../modules/chat/rte_image_cdn_proxy';
 
 const ERROR_IMAGE = 'https://static-cdn.jtvnw.net/emoticons/v1/58765/2.0';
 
@@ -212,7 +213,7 @@ export default class RichContent extends Module {
 							fragments: this.state.fragments,
 							i18n_prefix: this.state.i18n_prefix,
 
-							allow_media: t.chat.context.get('tooltip.link-images'),
+							allow_media: linkPreviewAllowsMedia(t.chat.context),
 							allow_unsafe: t.chat.context.get('tooltip.link-nsfw-images')
 						})}
 					</div>);

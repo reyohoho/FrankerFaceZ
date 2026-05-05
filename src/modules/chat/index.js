@@ -25,6 +25,7 @@ import * as RICH_PROVIDERS from './rich_providers';
 import * as LINK_PROVIDERS from './link_providers';
 
 import Actions from './actions/actions';
+import {applyRteImageUrlsDeep} from './rte_image_cdn_proxy';
 
 
 function sortPriorityColorTerms(list) {
@@ -275,7 +276,8 @@ export default class Chat extends Module {
 			ui: {
 				path: 'Chat > Appearance >> Rich Content',
 				title: 'Display inline previews for direct media links.',
-				description: 'Shows image/video previews for direct media URLs, 7TV emote links, Imgur, and kappa.lol links posted in chat.',
+				description:
+					'Shows image/video previews for direct media URLs, 7TV emote links, Imgur, and kappa.lol links in chat. When **Display images in chat tooltips** (Chat › Tooltips) is enabled, this also toggles thumbnails in rich link previews and hover tooltips, using the RTE CDN proxy where needed.',
 				component: 'setting-check-box'
 			}
 		});
@@ -289,7 +291,7 @@ export default class Chat extends Module {
 			ui: {
 				path: 'Chat > Appearance >> Rich Content',
 				title: 'Media preview style',
-				description: 'Choose how direct media link previews are displayed. **Card** shows the FrankerFaceZ rich content card. **Inline** renders the image or video directly under the message, similar to ReYohoho Twitch Extension.',
+				description: 'Choose how direct media previews and link hover thumbnails are shown when media previews are on. **Card** uses the rich content card layout. **Inline** shows the media under the message and a compact thumbnail in rich link tooltips (max size uses the limits below).',
 				component: 'setting-select-box',
 				data: [
 					{value: 'card', title: 'Card (Default)'},
@@ -303,7 +305,7 @@ export default class Chat extends Module {
 			ui: {
 				path: 'Chat > Appearance >> Rich Content',
 				title: 'Inline preview maximum width',
-				description: 'Maximum width (in pixels) for inline media previews.',
+				description: 'Maximum width (in pixels) for inline previews and for inline-style link tooltip thumbnails.',
 				component: 'setting-text-box',
 				process: 'to_int',
 				bounds: [50, 2000]
@@ -315,7 +317,7 @@ export default class Chat extends Module {
 			ui: {
 				path: 'Chat > Appearance >> Rich Content',
 				title: 'Inline preview maximum height',
-				description: 'Maximum height (in pixels) for inline media previews.',
+				description: 'Maximum height (in pixels) for inline previews and for inline-style link tooltip thumbnails.',
 				component: 'setting-text-box',
 				process: 'to_int',
 				bounds: [50, 2000]
@@ -1108,17 +1110,15 @@ export default class Chat extends Module {
 			}
 		});
 
+		// Derived: link tooltip/card images follow global tooltip imagery + Chat › Rich › media previews.
 		this.settings.add('tooltip.link-images', {
 			default: true,
 			requires: ['tooltip.images'],
-			process(ctx, val) {
-				return ctx.get('tooltip.images') ? val : false
-			},
+			process(ctx) {
+				if ( ! ctx.get('tooltip.images') )
+					return false;
 
-			ui: {
-				path: 'Chat > Tooltips >> Links',
-				title: 'Display images for links.',
-				component: 'setting-check-box'
+				return !! ctx.get('chat.rich.media-previews');
 			}
 		});
 
@@ -2809,6 +2809,9 @@ export default class Chat extends Module {
 				info[2] = success ? data : null;
 
 				data = this.handleLinkToS(data);
+
+				if ( success && data && typeof data === 'object' )
+					applyRteImageUrlsDeep(data);
 
 				if ( callbacks )
 					for(const cbs of callbacks)

@@ -1,5 +1,7 @@
 'use strict';
 
+import {linkPreviewAllowsMedia} from './rte_image_cdn_proxy';
+
 // ============================================================================
 // Rich Content Providers
 // ============================================================================
@@ -53,7 +55,7 @@ export const Links = {
 
 				return {
 					...data,
-					allow_media: this.context.get('tooltip.link-images'),
+					allow_media: linkPreviewAllowsMedia(this.context),
 					allow_unsafe: this.context.get('tooltip.link-nsfw-images')
 				};
 			}

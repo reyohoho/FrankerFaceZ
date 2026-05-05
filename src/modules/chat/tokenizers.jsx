@@ -5,7 +5,7 @@
 // ============================================================================
 
 import {sanitize, createElement} from 'utilities/dom';
-import {has, getTwitchEmoteURL, split_chars, getTwitchEmoteSrcSet} from 'utilities/object';
+import {has, getTwitchEmoteURL, split_chars, getTwitchEmoteSrcSet, deep_copy} from 'utilities/object';
 import { NoContent } from 'utilities/tooltip';
 
 import {EmoteTypes, IS_FIREFOX, REPLACEMENT_BASE, REPLACEMENTS, WEIRD_EMOTE_SIZES} from 'utilities/constants';
@@ -13,7 +13,7 @@ import {CATEGORIES, JOINER_REPLACEMENT} from './emoji';
 
 import { MODIFIER_FLAGS } from './emotes';
 import {DIRECT_IMAGE_URL, DIRECT_VIDEO_URL, SEVENTV_EMOTE_URL, IMGUR_URL, KAPPA_LOL_URL} from './link_media_regex';
-import {applyRteImageCdnProxy} from './rte_image_cdn_proxy';
+import {applyRteImageUrlsDeep, extractFirstCardImageUrl, linkPreviewAllowsMedia} from './rte_image_cdn_proxy';
 
 const SHRINK_X = MODIFIER_FLAGS.ShrinkX,
 	SLIDE_X = MODIFIER_FLAGS.Slide,
@@ -95,15 +95,18 @@ export const Links = {
 			return [this.i18n.t('tooltip.email-link', 'E-Mail {address}', {address: target.textContent})];
 
 		const url = target.dataset.url || target.href,
-			show_images = datasetBool(target.dataset.forceMedia) ?? this.context.get('tooltip.link-images'),
+			show_images = datasetBool(target.dataset.forceMedia) ?? linkPreviewAllowsMedia(this.context),
 			show_unsafe = datasetBool(target.dataset.forceUnsafe) ?? this.context.get('tooltip.link-nsfw-images');
 
 		return Promise.all([
 			import(/* webpackChunkName: 'rich_tokens' */ 'utilities/rich_tokens'),
 			this.get_link_info(url)
-		]).then(([rich_tokens, data]) => {
-			if ( ! data || (data.v || 1) > rich_tokens.VERSION )
+		]).then(([rich_tokens, raw]) => {
+			if ( ! raw || (raw.v || 1) > rich_tokens.VERSION )
 				return '';
+
+			const data = deep_copy(raw);
+			applyRteImageUrlsDeep(data);
 
 			const ctx = {
 				tList: (...args) => this.i18n.tList(...args),
@@ -130,7 +133,32 @@ export const Links = {
 				tip.outer.style.setProperty('--ffz-color-accent', data.accent);
 			}
 
-			if ( data.full ) {
+			const multi_url_chain = Array.isArray(data.urls) && data.urls.length > 1;
+			const img_url = (
+				! multi_url_chain &&
+				! data.unsafe &&
+				show_images &&
+				this.context.get('chat.rich.media-previews-style') === 'inline' &&
+				this.context.get('tooltip.rich-links')
+			) ? extractFirstCardImageUrl(data) : null;
+
+			if ( img_url ) {
+				const mw = this.context.get('chat.rich.media-previews-max-width') || 300;
+				const mh = this.context.get('chat.rich.media-previews-max-height') || 250;
+				content = (<a
+					href={url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="ffz-tooltip-inline-media"
+				>
+					<img
+						src={img_url}
+						alt=""
+						style={{display: 'block', maxWidth: `${mw}px`, maxHeight: `${mh}px`, width: 'auto', height: 'auto'}}
+						onLoad={ctx.onload}
+					/>
+				</a>);
+			} else if ( data.full ) {
 				content = rich_tokens.renderTokens(data.full, createElement, ctx);
 
 			} else if ( data.mid ) {
