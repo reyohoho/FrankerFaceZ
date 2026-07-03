@@ -236,9 +236,14 @@ export default class ReyohohoJailChat extends Module {
 			messageBody: text,
 			messageParts: [{type: 0, content: text}],
 			user: {
-				// Real Twitch id so RTE custom badge + paint resolve for this user.
+				// Keep the real Twitch id so the RTE badge + 7TV paint (both keyed
+				// on the twitch id) still resolve, and keep the color so the name
+				// looks normal. But deliberately blank userLogin: Twitch resolves
+				// the username click → viewer card → profile from the login, so an
+				// empty login prevents the click from revealing the jail publisher's
+				// profile while leaving the badge/color intact.
 				userID: twitchId || '0',
-				userLogin: login || 'rte',
+				userLogin: '',
 				userDisplayName: displayName || login || 'rte',
 				color: userColor,
 				chatColor: userColor,

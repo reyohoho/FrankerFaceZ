@@ -13,7 +13,7 @@ import {CATEGORIES, JOINER_REPLACEMENT} from './emoji';
 
 import { MODIFIER_FLAGS } from './emotes';
 import {DIRECT_IMAGE_URL, DIRECT_VIDEO_URL, SEVENTV_EMOTE_URL, IMGUR_URL, KAPPA_LOL_URL} from './link_media_regex';
-import {applyRteImageUrlsDeep, extractFirstCardImageUrl, linkPreviewAllowsMedia} from './rte_image_cdn_proxy';
+import {applyRteImageCdnProxy, applyRteImageUrlsDeep, extractFirstCardImageUrl, linkPreviewAllowsMedia} from './rte_image_cdn_proxy';
 
 const SHRINK_X = MODIFIER_FLAGS.ShrinkX,
 	SLIDE_X = MODIFIER_FLAGS.Slide,
