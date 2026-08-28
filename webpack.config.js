@@ -69,6 +69,13 @@ const COPY_PATTERNS = [
 	},
 ];
 
+if ( FOR_EXTENSION ) {
+	COPY_PATTERNS.push({
+		from: './src/rte_vod_unlock.js',
+		to: 'rte_vod_unlock.js'
+	});
+}
+
 const TARGET = 'es2020';
 
 /** @type {import('webpack').Configuration} */

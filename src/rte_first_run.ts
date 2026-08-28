@@ -17,8 +17,11 @@
  */
 import {
 	FFZ_LS_PREFIX,
-	RTE_FIRST_RUN_FLAG
+	RTE_FIRST_RUN_FLAG,
+	RTE_LIVE_REWIND_MIGRATION_FLAG
 } from './utilities/rte_storage_constants';
+
+const LIVE_REWIND_ADDON_ID = 'reyohoho-live-rewind';
 
 const PROFILE_PREFIX = 'p:0:';
 
@@ -148,6 +151,7 @@ const DEFAULTS: DefaultEntry[] = [
 			'reyohoho-mod-slider',
 			'reyohoho-friends',
 			'reyohoho-emotes-proxy',
+			'reyohoho-live-rewind',
 			'reyohoho-emote-actions',
 			'reyohoho-chat-commands',
 			'reyohoho-bypass-unique-chat',
@@ -361,6 +365,43 @@ function writeProfileValue(key: string, value: unknown, global = false) {
 		// LocalStorage may be unavailable / quota exceeded — fail loudly only
 		// once at console.warn so we do not blow up startup.
 		console.warn(`[RTE first-run] Failed to write ${fullKey}:`, err);
+	}
+}
+
+/**
+ * Enable the live-rewind add-on for installs that predate its introduction.
+ * Safe to call multiple times — it short-circuits after the first run.
+ */
+export function migrateLiveRewindAddon(): void {
+	try {
+		if (localStorage.getItem(RTE_LIVE_REWIND_MIGRATION_FLAG) != null)
+			return;
+	} catch {
+		return;
+	}
+
+	const key = `${FFZ_LS_PREFIX}addons.enabled`;
+
+	try {
+		const raw = localStorage.getItem(key);
+		const parsed = raw ? JSON.parse(raw) : null;
+		const list = Array.isArray(parsed) ? parsed.slice() : [];
+
+		if (!list.includes(LIVE_REWIND_ADDON_ID))
+			list.push(LIVE_REWIND_ADDON_ID);
+
+		localStorage.setItem(key, JSON.stringify(list));
+
+		// Reset feature toggle to defaults if a failed subscription check
+		// disabled it during the first settings registration.
+		writeProfileValue('addon.reyohoho-live-rewind.enabled', true, false);
+		writeProfileValue('addon.reyohoho-live-rewind.user-set', false, false);
+
+		localStorage.setItem(RTE_LIVE_REWIND_MIGRATION_FLAG, JSON.stringify({
+			at: new Date().toISOString()
+		}));
+	} catch (err) {
+		console.warn('[RTE] Failed to migrate live-rewind add-on enablement:', err);
 	}
 }
 

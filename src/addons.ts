@@ -6,7 +6,6 @@
 
 import Module, { GenericModule } from 'utilities/module';
 import { EXTENSION, SERVER_OR_EXT } from 'utilities/constants';
-import { createElement } from 'utilities/dom';
 import { timeout, has, deep_copy, fetchJSON } from 'utilities/object';
 import { getBuster } from 'utilities/time';
 import type SettingsManager from './settings';
@@ -230,7 +229,11 @@ export default class AddonManager extends Module<'addons'> {
 
 			// Do not attempt to load local add-ons if using the extension, as
 			// loading external code is against the policy of basically everyone.
-			(! EXTENSION && this.settings.get('addons.dev.server'))
+			// Gate on the compile-time `__extension__` define (not the runtime
+			// `EXTENSION` const) so esbuild dead-code-eliminates the localhost
+			// URL from the packed extension bundle. Chrome Web Store rejects
+			// MV3 builds that merely *contain* remotely hosted code references.
+			(! __extension__ && this.settings.get('addons.dev.server'))
 				? fetchJSON(`https://localhost:8001/script/addons.json?_=${getBuster()}`)
 				: null
 		]);
@@ -581,12 +584,24 @@ export default class AddonManager extends Module<'addons'> {
 			return;
 		}
 
-		document.head.appendChild(createElement('script', {
-			id: `ffz-loaded-addon-${addon.id}`,
-			type: 'text/javascript',
-			src: addon.src || `${addon.dev ? 'https://localhost:8001/script' : SERVER_OR_EXT}/addons/${addon.id}/script.js?_=${getBuster(30)}`,
-			crossorigin: 'anonymous'
-		}));
+		// IMPORTANT (Manifest V3 / remotely hosted code):
+		//
+		// Add-on scripts are bundled inside the extension package
+		// (web/addons/<id>/script.js) and run in the page's MAIN world. Only
+		// the content script (see entry_ext.js) can call
+		// `browser.runtime.getURL()` to resolve a packaged resource URL, so we
+		// simply ask it to inject the packaged add-on script. As a result this
+		// bundle contains no script URL at all here -- there is nothing for the
+		// Chrome Web Store review to mistake for remotely hosted code.
+		//
+		// Note: this only supports the packed extension build. The old
+		// website/userscript/dev-server loading paths (which fetched add-on
+		// scripts from a remote CDN or localhost) have been removed on purpose,
+		// as only the extension is shipped.
+		window.postMessage({
+			ffz_inject_addon: true,
+			id: addon.id
+		}, location.origin);
 
 		// Error if this takes more than 60 seconds.
 		await timeout(this.waitFor(`addon.${id}:registered` as any), 60000);

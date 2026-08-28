@@ -227,6 +227,21 @@ export default {
 		'Открыть список подписок этого пользователя.',
 	'addon.reyohoho-user-tools.action.tooltip': 'Подписки: {login}',
 
+	// ─── reyohoho-live-rewind ──────────────────────────────────────────────
+	'setting.add_ons.re_yohoho_live_rewind': 'ReYohoho Перемотка live-стрима',
+	'setting.entry.addon.reyohoho-live-rewind.enabled':
+		'Перемотка live-стрима (RTE Sub)',
+	'setting.entry.addon.reyohoho-live-rewind.enabled.description':
+		'Добавляет полоску перемотки на live-стримах через запись VOD. У стримера должно быть включено сохранение трансляций.\n\n' +
+		'**Доступно только подписчикам RTE.** [Оформить подписку](https://ext.rte.net.ru)',
+	'addon.reyohoho-live-rewind.setting.title': 'Перемотка live-стрима (RTE Sub)',
+	'addon.reyohoho-live-rewind.setting.description':
+		'Добавляет полоску перемотки на live-стримах через запись VOD. У стримера должно быть включено сохранение трансляций.\n\n' +
+		'**Доступно только подписчикам RTE.** [Оформить подписку](https://ext.rte.net.ru)',
+	'addon.reyohoho-live-rewind.subscribersOnly': 'Доступно только подписчикам RTE.',
+	'addon.reyohoho-live-rewind.subscribeLink': 'Оформить подписку',
+	'home.rte.sub.benefits.rewind': 'Перемотка live-стрима через запись VOD.',
+
 	// ─── chat.filtering.block-digit-only-messages ──────────────────────────
 	'setting.entry.chat.filtering.block-digit-only-messages':
 		'Скрывать сообщения, состоящие только из цифр',

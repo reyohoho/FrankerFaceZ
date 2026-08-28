@@ -103,6 +103,7 @@
 						<ul class="tw-mg-l-2 tw-c-text-alt">
 							<li>{{ t('home.rte.sub.benefits.paint', 'Раскраска ника в чате (видна другим пользователям расширения).') }}</li>
 							<li>{{ t('home.rte.sub.benefits.badge', 'Кастомный бейдж в чате (видна другим пользователям расширения).') }}</li>
+							<li>{{ t('home.rte.sub.benefits.rewind', 'Перемотка live-стрима через запись VOD.') }}</li>
 						</ul>
 						<p v-if="rteUserId" class="tw-c-text-alt tw-mg-t-05">
 							<strong>{{ t('home.rte.sub.yourId', 'Ваш Twitch ID:') }}</strong>

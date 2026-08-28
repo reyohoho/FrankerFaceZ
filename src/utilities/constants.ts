@@ -11,16 +11,29 @@ export const DEBUG = localStorage.ffzDebugMode === 'true' && document.body.class
 /** The base URL of the FrankerFaceZ CDN. */
 export const SERVER = DEBUG ? 'https://localhost:8000' : 'https://cdn2.frankerfacez.com';
 
-let path = `${SERVER}/script`;
-
-if ( EXTENSION ) {
-	path = __webpack_public_path__;
+function getExtensionBasePath(): string {
+	let path = __webpack_public_path__;
 	if ( path.endsWith('/') )
 		path = path.slice(0, path.length - 1);
+	return path;
 }
 
-/** Either the base URL of the FrankerFaceZ CDN or, if FFZ was loaded as a packed web extension, the base URL of the web extension's web accessible files. */
-export const SERVER_OR_EXT = path;
+/**
+ * Either the base URL of the FrankerFaceZ CDN or, if FFZ was loaded as a
+ * packed web extension, the base URL of the web extension's web accessible
+ * files.
+ *
+ * IMPORTANT (Manifest V3 / remotely hosted code):
+ * The branch is selected on the *compile-time* `__extension__` define (a
+ * ternary, NOT an `if`/`return`), so esbuild fully drops the remote-CDN
+ * branch from the packed extension bundle. This guarantees that NO remotely
+ * hosted script URL (e.g. cdn2.frankerfacez.com) survives in the code path
+ * that injects add-on <script> tags, which is what the Chrome Web Store
+ * review flags.
+ */
+export const SERVER_OR_EXT = __extension__
+	? getExtensionBasePath()
+	: `${SERVER}/script`;
 
 /** The base URL of the FrankerFaceZ API. */
 export const API_SERVER = 'https://api.frankerfacez.com';

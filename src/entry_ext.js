@@ -75,6 +75,46 @@
 		return false;
 	});
 
+	// Inject add-on scripts from the extension package on request from the
+	// page.
+	//
+	// Manifest V3 forbids remotely hosted code. Add-on scripts are bundled
+	// inside the extension (web/addons/<id>/script.js), but the page context
+	// (MAIN world) that decides which add-ons to load cannot call
+	// `browser.runtime.getURL()` -- only this content script can. So the page
+	// asks us to inject the packaged add-on script, and we resolve its URL
+	// exclusively through `browser.runtime.getURL()`, the only pattern that
+	// unambiguously identifies packaged (non-remote) code. No remote/CDN URL
+	// is ever involved.
+	const ADDON_ID_RE = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/i;
+	window.addEventListener('message', evt => {
+		if (evt.source !== window || evt.data?.ffz_inject_addon !== true)
+			return;
+
+		const id = evt.data.id;
+		if (typeof id !== 'string' || ! ADDON_ID_RE.test(id))
+			return;
+
+		// Don't inject the same add-on twice.
+		if (document.getElementById(`ffz-loaded-addon-${id}`))
+			return;
+
+		const addon_script = document.createElement('script');
+		addon_script.id = `ffz-loaded-addon-${id}`;
+		addon_script.type = 'text/javascript';
+		addon_script.crossOrigin = 'anonymous';
+		addon_script.src = browser.runtime.getURL(`web/addons/${id}/script.js`);
+		document.head.appendChild(addon_script);
+	});
+
+	// Inject the live-rewind VOD unlock patch into the page context before
+	// Twitch spawns IVS workers or FrankerFaceZ loads.
+	const vodUnlock = document.createElement('script');
+	vodUnlock.id = 'rte-vod-unlock';
+	vodUnlock.src = browser.runtime.getURL('web/rte_vod_unlock.js');
+	vodUnlock.async = false;
+	(document.head || document.documentElement).appendChild(vodUnlock);
+
 	// Now, inject our script into the page context.
 	const HOST = location.hostname,
 		SERVER = browser.runtime.getURL('web'),
