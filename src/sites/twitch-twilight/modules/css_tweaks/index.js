@@ -22,6 +22,7 @@ const CLASSES = {
 	'side-closed-friends': '.side-nav--collapsed .online-friends',
 	'side-closed-rec-channels': '.side-nav--collapsed .recommended-channels,.side-nav--collapsed .side-nav-section + .side-nav-section:not(.online-friends):not(.bd--shelf)',
 	'side-offline-channels': '.ffz--side-nav-card-offline',
+	'side-watch-streak': '.side-nav-card__link div:has(> div > svg path[fill="#FFB31A"])',
 	'side-rerun-channels': '.side-nav .ffz--side-nav-card-rerun',
 	'modview-hide-info': '.modview-player-widget__hide-stream-info',
 
@@ -257,6 +258,17 @@ export default class CSSTweaks extends Module {
 				component: 'setting-check-box'
 			},
 			changed: val => this.toggleHide('side-offline-channels', val)
+		});
+
+		this.settings.add('layout.side-nav.hide-watch-streak', {
+			default: false,
+			ui: {
+				path: 'Appearance > Layout >> Side Navigation',
+				title: 'Hide Watch Streak',
+				description: 'Hide the "Watch Streak" badges shown on followed channels in the side navigation.',
+				component: 'setting-check-box'
+			},
+			changed: val => this.toggleHide('side-watch-streak', val)
 		});
 
 		this.settings.add('layout.side-nav.rerun-style', {
@@ -530,6 +542,7 @@ export default class CSSTweaks extends Module {
 		this.toggle('hide-side-nav', !this.settings.get('layout.side-nav.show'));
 		//this.toggleHide('side-rec-friends', !this.settings.get('layout.side-nav.show-rec-friends'));
 		this.toggleHide('side-offline-channels', this.settings.get('layout.side-nav.hide-offline'));
+		this.toggleHide('side-watch-streak', this.settings.get('layout.side-nav.hide-watch-streak'));
 		this.toggleHide('discover-luna', this.settings.get('layout.hide-discover-luna'));
 		this.toggleHide('prime-offers', !this.settings.get('layout.prime-offers'));
 		//this.toggleHide('top-discover', !this.settings.get('layout.discover'));
