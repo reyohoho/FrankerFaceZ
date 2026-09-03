@@ -35,7 +35,6 @@ export default {
 	'setting.add_ons.reyohoho_emotes_proxy.paints': 'Расцветки ника',
 	'setting.add_ons.reyohoho_friends': 'ReYohoho Друзья',
 	'setting.add_ons.reyohoho_mod_slider': 'ReYohoho Слайдер модерации',
-	'setting.add_ons.reyohoho_user_tools': 'ReYohoho Инструменты пользователя',
 
 	// ─── reyohoho-anon-chat ────────────────────────────────────────────────
 	'setting.entry.addon.reyohoho-anon-chat.enabled':
@@ -216,16 +215,6 @@ export default {
 		'Включить слайдер модерации',
 	'setting.entry.addon.reyohoho-mod-slider.enabled.description':
 		'Показывать свайп-ручку слева от сообщений чата для модераторов. Свайп вправо — бан/таймаут/удаление, свайп влево — разбан.',
-
-	// ─── reyohoho-user-tools ───────────────────────────────────────────────
-	'setting.entry.addon.reyohoho-user-tools.enabled':
-		'Показывать кнопку «Подписки» при наведении на сообщение',
-	'setting.entry.addon.reyohoho-user-tools.enabled.description':
-		'Добавляет кнопку «Подписки» в панель действий при наведении на сообщение чата. Клик открывает список подписок пользователя.',
-	'addon.reyohoho-user-tools.action.title': 'Показать подписки',
-	'addon.reyohoho-user-tools.action.description':
-		'Открыть список подписок этого пользователя.',
-	'addon.reyohoho-user-tools.action.tooltip': 'Подписки: {login}',
 
 	// ─── reyohoho-live-rewind ──────────────────────────────────────────────
 	'setting.add_ons.re_yohoho_live_rewind': 'ReYohoho Перемотка live-стрима',

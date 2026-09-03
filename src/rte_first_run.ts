@@ -68,7 +68,7 @@ const DEFAULTS: DefaultEntry[] = [
 	// Tooltips
 	{ key: 'tooltip.link-nsfw-images', value: true },
 
-	// Hover actions (full export of pin / reply / copy / chat command / friends-follows)
+	// Hover actions (pin / reply / copy / chat command)
 	{
 		key: 'chat.actions.hover',
 		value: [
@@ -105,13 +105,6 @@ const DEFAULTS: DefaultEntry[] = [
 					display: {}
 				},
 				id: '1777097707347-0.42712167435926307-0'
-			},
-			{
-				v: {
-					action: 'addon.reyohoho-user-tools.follows',
-					appearance: { type: 'icon', icon: 'ffz-i-link-ext' }
-				},
-				id: '1777973085674-0.7380558386528492-0'
 			}
 		]
 	},
@@ -147,7 +140,6 @@ const DEFAULTS: DefaultEntry[] = [
 		key: 'addons.enabled',
 		global: true,
 		value: [
-			'reyohoho-user-tools',
 			'reyohoho-mod-slider',
 			'reyohoho-friends',
 			'reyohoho-emotes-proxy',
