@@ -39,7 +39,7 @@ import * as Utility_Tooltip from 'utilities/tooltip';
 import * as Utility_I18n from 'utilities/translation-core';
 import * as Utility_Filtering from 'utilities/filtering';
 import { installPort } from './utilities/extension_port';
-import { migrateLiveRewindAddon, runRteFirstRunMigration } from './rte_first_run';
+import { migrateLiveRewindAddon, migrateViewerCardAddon, runRteFirstRunMigration } from './rte_first_run';
 
 class FrankerFaceZ extends Module {
 
@@ -269,5 +269,6 @@ window.FrankerFaceZ = FrankerFaceZ;
 // reads localStorage under the new RTE-FFZ:setting: prefix).
 runRteFirstRunMigration();
 migrateLiveRewindAddon();
+migrateViewerCardAddon();
 
 window.ffz = new FrankerFaceZ();

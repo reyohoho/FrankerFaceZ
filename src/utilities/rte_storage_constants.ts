@@ -18,3 +18,6 @@ export const RTE_FIRST_RUN_FLAG = 'RTE-FFZ:first-run-v1';
 
 /** Ensures reyohoho-live-rewind is present in addons.enabled for existing installs. */
 export const RTE_LIVE_REWIND_MIGRATION_FLAG = 'RTE-FFZ:live-rewind-migration-v1';
+
+/** Ensures reyohoho-viewer-card is present in addons.enabled for existing installs. */
+export const RTE_VIEWER_CARD_MIGRATION_FLAG = 'RTE-FFZ:viewer-card-migration-v1';

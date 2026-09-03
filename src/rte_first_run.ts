@@ -18,10 +18,12 @@
 import {
 	FFZ_LS_PREFIX,
 	RTE_FIRST_RUN_FLAG,
-	RTE_LIVE_REWIND_MIGRATION_FLAG
+	RTE_LIVE_REWIND_MIGRATION_FLAG,
+	RTE_VIEWER_CARD_MIGRATION_FLAG
 } from './utilities/rte_storage_constants';
 
 const LIVE_REWIND_ADDON_ID = 'reyohoho-live-rewind';
+const VIEWER_CARD_ADDON_ID = 'reyohoho-viewer-card';
 
 const PROFILE_PREFIX = 'p:0:';
 
@@ -149,6 +151,7 @@ const DEFAULTS: DefaultEntry[] = [
 			'reyohoho-bypass-unique-chat',
 			'reyohoho-ascii-art-font',
 			'reyohoho-anon-chat',
+			'reyohoho-viewer-card',
 			'ffzap-bttv',
 			'7tv-emotes',
 			'ffzap-core',
@@ -394,6 +397,38 @@ export function migrateLiveRewindAddon(): void {
 		}));
 	} catch (err) {
 		console.warn('[RTE] Failed to migrate live-rewind add-on enablement:', err);
+	}
+}
+
+/**
+ * Enable the viewer-card add-on for installs that predate its introduction.
+ * Safe to call multiple times — it short-circuits after the first run.
+ */
+export function migrateViewerCardAddon(): void {
+	try {
+		if (localStorage.getItem(RTE_VIEWER_CARD_MIGRATION_FLAG) != null)
+			return;
+	} catch {
+		return;
+	}
+
+	const key = `${FFZ_LS_PREFIX}addons.enabled`;
+
+	try {
+		const raw = localStorage.getItem(key);
+		const parsed = raw ? JSON.parse(raw) : null;
+		const list = Array.isArray(parsed) ? parsed.slice() : [];
+
+		if (!list.includes(VIEWER_CARD_ADDON_ID))
+			list.push(VIEWER_CARD_ADDON_ID);
+
+		localStorage.setItem(key, JSON.stringify(list));
+
+		localStorage.setItem(RTE_VIEWER_CARD_MIGRATION_FLAG, JSON.stringify({
+			at: new Date().toISOString()
+		}));
+	} catch (err) {
+		console.warn('[RTE] Failed to migrate viewer-card add-on enablement:', err);
 	}
 }
 
