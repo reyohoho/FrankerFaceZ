@@ -417,6 +417,36 @@
 		pointer-events: none;
 	}
 
+	// Compact the bottom tab bar so all buttons (category tabs + native GIF +
+	// reload + settings) fit on a single row.
+	.emote-picker__tab-nav-container {
+		.emote-picker-tab-item button > div {
+			padding-left: .3rem;
+			padding-right: .3rem;
+		}
+	}
+
+	.ffz--native-gif-button {
+		color: #a970ff;
+
+		&:hover,
+		&:focus {
+			color: #bf94ff;
+		}
+
+		& > div {
+			align-items: center;
+		}
+
+		.ffz--native-gif-button__label {
+			margin-left: .2rem;
+			font-size: .9rem;
+			font-weight: 700;
+			letter-spacing: 0.3px;
+			line-height: 1;
+		}
+	}
+
 	.emote-picker__emote-image {
 		max-height: 3.2rem
 	}

@@ -2314,6 +2314,54 @@ export const TwitchEmotes = {
 
 
 // ============================================================================
+// Twitch GIFs
+// ============================================================================
+
+export const Gifs = {
+	type: 'gif',
+	priority: 1000,
+
+	render(token, createElement) {
+		if ( this.context.get('chat.rich.hide-native-gifs') )
+			return (<span
+				class="ffz--gif-hidden ffz--pointer-events"
+				data-url={token.url}
+				data-title={token.title || ''}
+				onClick={this.clickToRevealGif}
+			>
+				{this.i18n.t('chat.gif.hidden', 'Twitch GIF: {title}', {title: token.title || ''})}
+			</span>);
+
+		return (<a
+			class="ffz--gif-embed"
+			rel="noopener noreferrer"
+			target="_blank"
+			href={token.url}
+			onClick={this.handleLinkClick}
+		>
+			<img
+				class="chat-image ffz--gif-embed__image"
+				src={token.url}
+				alt={token.title}
+				style={{ maxHeight: '200px' }}
+			/>
+		</a>);
+	},
+
+	process(tokens, msg) {
+		if ( ! msg.ffz_gif )
+			return;
+
+		return [{
+			type: 'gif',
+			url: msg.ffz_gif.url,
+			title: msg.ffz_gif.title
+		}];
+	}
+}
+
+
+// ============================================================================
 // Inline Media Preview
 // ============================================================================
 //

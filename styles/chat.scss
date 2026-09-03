@@ -684,3 +684,23 @@
 	}
 }
 
+// Native Twitch GIF messages (Tier 2+ subs) hidden via "Hide native Twitch GIFs".
+// Shows a clickable caption instead of the inline GIF.
+.ffz--gif-hidden {
+	display: inline;
+	padding: 0 .4rem;
+	border: 1px dashed var(--color-border-base, rgba(173, 173, 184, .5));
+	border-radius: .4rem;
+	color: var(--color-text-alt-2, #adadb8);
+	font-style: italic;
+	cursor: pointer;
+	word-break: break-word;
+
+	&:hover,
+	&:focus {
+		color: var(--color-text-base, #efeff1);
+		border-color: var(--color-text-alt-2, #adadb8);
+		background: var(--color-background-button-text-hover, rgba(255, 255, 255, .08));
+	}
+}
+

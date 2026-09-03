@@ -11,6 +11,7 @@ import Module, { buildAddonProxy } from 'utilities/module';
 import {Color} from 'utilities/color';
 import {createElement, ManagedStyle} from 'utilities/dom';
 import {getFontsList} from 'utilities/fonts';
+import {getGiphyDirectUrl} from 'utilities/giphy';
 import {timeout, has, addWordSeparators, glob_to_regex, escape_regex, split_chars, makeAddonIdChecker, deep_copy, SourcedSet, getTwitchEmoteURL} from 'utilities/object';
 
 import Badges from './badges';
@@ -86,6 +87,7 @@ export default class Chat extends Module {
 
 		// Bind for JSX stuff
 		this.clickToReveal = this.clickToReveal.bind(this);
+		this.clickToRevealGif = this.clickToRevealGif.bind(this);
 		this.handleLinkClick = this.handleLinkClick.bind(this);
 		this.handleMentionClick = this.handleMentionClick.bind(this);
 		this.handleReplyClick = this.handleReplyClick.bind(this);
@@ -278,6 +280,16 @@ export default class Chat extends Module {
 				title: 'Display inline previews for direct media links.',
 				description:
 					'Shows image/video previews for direct media URLs, 7TV emote links, Imgur, and kappa.lol links in chat. When **Display images in chat tooltips** (Chat › Tooltips) is enabled, this also toggles thumbnails in rich link previews and hover tooltips, using the RTE CDN proxy where needed.',
+				component: 'setting-check-box'
+			}
+		});
+
+		this.settings.add('chat.rich.hide-native-gifs', {
+			default: false,
+			ui: {
+				path: 'Chat > Appearance >> Rich Content',
+				title: 'Hide native Twitch GIFs.',
+				description: 'Hides the inline GIF from native Twitch GIF messages (Tier 2+ subscriber messages), showing a "Twitch GIF: [name]" caption instead. Click the caption to reveal the GIF.',
 				component: 'setting-check-box'
 			}
 		});
@@ -1987,6 +1999,34 @@ export default class Chat extends Module {
 	}
 
 
+	clickToRevealGif(event) { // eslint-disable-line class-methods-use-this
+		const target = event.currentTarget;
+		if ( ! target || ! target.dataset )
+			return;
+
+		const url = target.dataset.url;
+		if ( ! url )
+			return;
+
+		const link = createElement('a', {
+			class: 'ffz--gif-embed',
+			rel: 'noopener noreferrer',
+			target: '_blank',
+			href: url
+		});
+
+		const img = createElement('img', {
+			class: 'chat-image ffz--gif-embed__image',
+			src: url,
+			alt: target.dataset.title || ''
+		});
+		img.style.maxHeight = '200px';
+
+		link.appendChild(img);
+		target.replaceWith(link);
+	}
+
+
 	standardizeWhisper(msg) { // eslint-disable-line class-methods-use-this
 		if ( ! msg )
 			return msg;
@@ -2145,6 +2185,25 @@ export default class Chat extends Module {
 		if ( this.user_id_cache && user.login && user.id )
 			this.user_id_cache.set(user.login, user.id);
 
+		// gif support
+		if ( Array.isArray(msg.messageParts) && msg.messageParts.length === 1 ) {
+			const part = msg.messageParts[0],
+				content = part && (part.ffz_content ?? part.content);
+
+			if ( content && content.id && content.url && content.title != null ) {
+				// Normalize the (long) giphy media URL to a short direct image link so
+				// that copy / send-to-chat actions and the rendered embed all use a link
+				// our link-preview engine can handle.
+				const direct_url = getGiphyDirectUrl(content.url) || content.url;
+				msg.ffz_gif = {
+					id: content.id,
+					url: direct_url,
+					original_url: content.url,
+					title: content.title
+				};
+			}
+		}
+
 		// Standardize Message Content
 		if ( ! msg.message && msg.messageParts )
 			this.detokenizeMessage(msg);
@@ -2155,6 +2214,12 @@ export default class Chat extends Module {
 			else
 				msg.message = msg.content.text;
 		}
+
+		// Native Twitch GIF messages: the plain-text `message` would otherwise be the
+		// long giphy URL (or GIF caption). Use the short direct link so that copy and
+		// send-to-chat actions ({{message.text}}) produce a usable, preview-friendly URL.
+		if ( msg.ffz_gif && msg.ffz_gif.url )
+			msg.message = msg.ffz_gif.url;
 
 		// Standardize Emotes
 		if ( ! msg.ffz_emotes )

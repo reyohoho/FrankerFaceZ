@@ -491,10 +491,16 @@ export default class EmoteMenu extends Module {
 			cls.prototype.render = function() {
 				this._ffz_no_scan = false;
 
+				// When the menu is closed, reset the "show native picker" request so the
+				// next time it opens it shows the FFZ menu again.
+				if ( ! this.props?.visible )
+					t._force_native_picker = false;
+
 				if ( ! this.props ||
 					 this.props.emotePickerSource === 'bits-rewards' ||
 					 ! has(this.props, 'channelID') ||
-					 ! t.chat.context.get('chat.emote-menu.enabled')
+					 ! t.chat.context.get('chat.emote-menu.enabled') ||
+					 t._force_native_picker
 				) {
 					return old_render.call(this);
 				}
@@ -1238,6 +1244,7 @@ export default class EmoteMenu extends Module {
 				this.clickTab = this.clickTab.bind(this);
 				this.clickSideNav = this.clickSideNav.bind(this);
 				this.clickReload = this.clickReload.bind(this);
+				this.clickNativeGif = this.clickNativeGif.bind(this);
 				//this.clickRefresh = this.clickRefresh.bind(this);
 				this.handleFilterChange = this.handleFilterChange.bind(this);
 				this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -1496,6 +1503,20 @@ export default class EmoteMenu extends Module {
 
 				this.setState({reloading: true});
 				setTimeout(() => this.setState({reloading: false}), 3000);
+			}
+
+			clickNativeGif(event) { // eslint-disable-line class-methods-use-this
+				const target = event?.currentTarget,
+					tt = target && target._ffz_tooltip;
+
+				if ( tt && tt.hide )
+					tt.hide();
+
+				// Twitch's native emote picker is the only place with the native GIF tab
+				// (Tier 2+ subs). Our menu replaces the native picker in the same popover,
+				// so temporarily fall back to the native render and force a re-render.
+				t._force_native_picker = true;
+				t.EmoteMenu.forceUpdate();
 			}
 
 			clickSettings(event) { // eslint-disable-line class-methods-use-this
@@ -3010,6 +3031,19 @@ export default class EmoteMenu extends Module {
 											</button>
 										</div>}
 										<div class="tw-flex-grow-1" />
+										<div class="emote-picker-tab-item tw-relative">
+											<button
+												class="ffz-tooltip ffz--native-gif-button tw-block tw-full-width ffz-interactable ffz-interactable--hover-enabled ffz-interactable--default tw-interactive"
+												data-tooltip-type="html"
+												data-title={t.i18n.t('emote-menu.native-gif', 'Open Twitch emote menu (GIFs for Tier 2+ subs are only available there)')}
+												onClick={this.clickNativeGif}
+											>
+												<div class="tw-inline-flex tw-align-items-center tw-pd-x-1 tw-pd-y-05 ffz-font-size-4">
+													<figure class="ffz-i-twitch" />
+													<span class="ffz--native-gif-button__label">GIF</span>
+												</div>
+											</button>
+										</div>
 										<div class="emote-picker-tab-item tw-relative">
 											<button
 												class="ffz-tooltip tw-block tw-full-width ffz-interactable ffz-interactable--hover-enabled ffz-interactable--default tw-interactive"

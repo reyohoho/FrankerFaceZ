@@ -153,7 +153,8 @@ export const RERENDER_SETTINGS = [
 	'chat.shared-chat.username-tooltip',
 	'chat.shared-chat.style',
 	'chat.rich.media-previews-max-width',
-	'chat.rich.media-previews-max-height'
+	'chat.rich.media-previews-max-height',
+	'chat.rich.hide-native-gifs'
 ] as const;
 
 /**
