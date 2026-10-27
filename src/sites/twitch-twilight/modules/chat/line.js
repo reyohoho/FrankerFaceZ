@@ -473,6 +473,161 @@ export default class ChatLine extends Module {
 			}
 		};
 
+		this.line_types.first_time_chatter = {
+			getClass: () => {
+				const style = this.chat.context.get('chat.lines.first-time-chatter');
+				return `ffz--ftc-line ffz-custom-color${style === 1 ? ' ffz--ftc-bg' : ''}`;
+			},
+
+			renderNotice: (msg, current_user, room, inst, e) => {
+				const notice = [
+					e('span', { className: 'tw-c-text-base tw-strong' },
+						this.i18n.t('chat.ftc-message', 'First Time Chatter')
+					)
+				];
+
+				notice.ffz_icon = e('span', {
+					className: 'ffz-i-first-time-chatter tw-c-text-base tw-mg-r-05'
+				});
+
+				return notice;
+			}
+		};
+
+		this.line_types.announcement = {
+			getClass: (msg) => {
+				const color = msg.announcement_color?.toLowerCase();
+				return `ffz--announcement-line ffz--announcement-${color}`;
+			},
+
+			renderNotice: (msg, current_user, room, inst, e) => {
+				const target = [
+					e('span', { className: 'ffz-i-shoutout tw-mg-r-05' }),
+					this.i18n.t('chat.announcement', 'Announcement')
+				];
+
+				const out = [e('div', { className: 'tw-c-text-base tw-strong' }, target)];
+				out.ffz_target = target;
+				return out;
+			}
+		};
+
+		this.line_types.watch_streak = {
+			getClass: () => 'ffz--watch-streak-line',
+
+			renderNotice: (msg, current_user, room, inst, e) => {
+				const user = msg.user;
+				const streak = msg.watch_streak;
+				const copo = msg.copo_reward;
+
+				const target = this.i18n.tList(
+					'chat.watch-streak.header',
+					'{icon}Watch Streak Reached {points_icon}+{copo}',
+					{
+						icon: e('span', { className: 'ffz-i-watch-streak tw-mg-r-05' }),
+						points_icon: e('span', { className: 'ffz--points-icon' }),
+						copo
+					}
+				);
+
+				const header = e('div', {
+					className: 'tw-c-text-base tw-strong'
+				}, target);
+
+				const body = e('div', {
+					className: 'tw-c-text-alt-2'
+				}, this.i18n.tList(
+					'chat.watch-streak.body',
+					'{user} is currently on a {streak, plural, one {#-stream streak} other {#-stream streak}}!',
+					{
+						streak,
+						user: e('span', {
+							role: 'button',
+							className: 'chatter-name',
+							onClick: inst.ffz_user_click_handler
+						}, e('span', {
+							className: 'tw-c-text-base tw-strong'
+						}, user.displayName))
+					}
+				));
+
+				const out = [header, body];
+				out.ffz_target = target;
+				return out;
+			}
+		};
+
+		this.line_types.raid_notice = {
+			getClass: () => 'ffz--raid-line',
+
+			renderNotice: (msg, current_user, room, inst, e) => {
+				const user = msg.user;
+				const count = msg.raid_viewer_count;
+
+				const target = this.i18n.tList(
+					'chat.raid.notice',
+					'{user} is raiding with a party of {count}.',
+					{
+						user: e('span', {
+							role: 'button',
+							className: 'chatter-name',
+							onClick: inst.ffz_user_click_handler
+						}, e('span', {
+							className: 'tw-c-text-base tw-strong'
+						}, user.displayName)),
+						count: e('strong', {}, this.i18n.formatNumber(count))
+					}
+				);
+
+				const out = [e('div', { className: 'tw-c-text-base' }, target)];
+				out.ffz_target = target;
+				return out;
+			}
+		};
+
+		this.line_types.shoutout = {
+			getClass: () => 'ffz--shoutout-line',
+
+			renderNotice: (msg, current_user, room, inst, e) => {
+				const login = msg.shoutout_login;
+				const display = msg.shoutout_display;
+
+				const target_user = JSON.stringify({
+					id: null,
+					login,
+					displayName: display
+				});
+
+				const target = [
+					e('span', { className: 'ffz-i-shoutout tw-mg-r-05' }),
+					this.i18n.t('chat.shoutout', 'Shoutout!')
+				];
+
+				const header = e('div', {
+					className: 'tw-c-text-base tw-strong'
+				}, target);
+
+				const body = e('div', {}, this.i18n.tList(
+					'chat.shoutout.body',
+					'Was given to {user}',
+					{
+						user: e('span', {
+							role: 'button',
+							className: 'chatter-name',
+							'data-user': target_user,
+							onClick: inst.ffz_user_click_handler
+						}, e('span', {
+							className: 'tw-c-text-base tw-strong'
+						}, display))
+					}
+				));
+
+				const out = [header, body];
+				out.ffz_target = target;
+				return out;
+			}
+		};
+
 		this.ChatLine = this.fine.define(
 			'chat-line',
 			n => n.renderMessageBody && n.props && ! n.onExtensionNameClick && !has(n.props, 'hasModPermissions'),
@@ -850,7 +1005,9 @@ export default class ChatLine extends Module {
 				if ( style === 2 )
 					return e('figure', {
 						className: `ffz-tooltip ffz-tooltip--no-mouse ffz-shared-chat-badge ffz-avatar tw-border-radius-rounded ${in_source ? 'ffz-shared-chat-badge--active' : ''} tw-mg-r-05`,
-						'data-title': t.i18n.t('chat.sent-from-source', 'Sent from {source}', {source: source.displayName}),
+						'data-tooltip-type': 'shared-chat',
+						'data-title': title,
+						'data-avatar': source.profileImageURL?.replace('28x28', '70x70')
 					}, e('img', {
 						className: 'tw-block tw-border-radius-rounded tw-image',
 						src: source.profileImageURL,
@@ -930,6 +1087,7 @@ other {# messages were deleted by a moderator.}
 				if ( current_user ) {
 					current_user.moderator = this.props.isCurrentUserModerator;
 					current_user.staff = this.props.isCurrentUserStaff;
+					current_user.lead_moderator = t.actions.isCurrentUserLeadMod();
 					current_user.reply_mode = reply_mode;
 					current_user.can_reply = can_reply;
 				}
@@ -982,6 +1140,9 @@ other {# messages were deleted by a moderator.}
 				let type = msg.ffz_type && t.line_types[msg.ffz_type];
 				if ( ! type && msg.bits > 0 && t.chat.context.get('chat.bits.cheer-notice') )
 					type = t.line_types.cheer;
+
+				if ( ! type && ( msg.ffz_first_msg || msg.isFirstMsg ) && t.chat.context.get('chat.lines.first-time-chatter') !== 0 )
+					type = t.line_types.first_time_chatter;
 
 				if ( ! type && msg.ffz_type )
 					type = t.line_types.unknown;
@@ -1324,7 +1485,7 @@ other {# messages were deleted by a moderator.}
 						);
 					}
 
-					klass = `${klass} ffz-notice-line user-notice-line tw-pd-y-05`;
+					klass = `${klass} ffz-notice-line user-notice-line tw-pd-x-1 tw-pd-y-05`;
 
 					if ( ! is_raw )
 						notice = e('div', {

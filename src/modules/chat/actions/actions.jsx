@@ -644,6 +644,19 @@ export default class Actions extends Module {
 	}
 
 
+	isCurrentUserLeadMod() { // eslint-disable-line class-methods-use-this
+		try {
+			const input = this.resolve('site.chat.input');
+			const perms = input?.CommandSuggestions?.first?.props?.chatCommandPermissions;
+			// Lead mods have a non-empty chatCommandPermissions Set;
+			// regular mods and viewers have an empty one or none at all.
+			return perms instanceof Set && perms.size > 0;
+		} catch (err) {
+			return false;
+		}
+	}
+
+
 	getUserLevel(room, user) { // eslint-disable-line class-methods-use-this
 		if ( ! room || ! user  )
 			return 0;
@@ -801,12 +814,14 @@ export default class Actions extends Module {
 		if ( u ) {
 			u.moderator = line.props.isCurrentUserModerator;
 			u.staff = line.props.isCurrentUserStaff;
+			u.lead_moderator = this.isCurrentUserLeadMod();
 			u.reply_mode = this.parent.context.get('chat.replies.style'),
 			u.can_reply = can_reply;
 		}
 
 		const current_level = this.getUserLevel(r, u),
-			msg_level = this.getUserLevel(r, msg.user);
+			msg_level = this.getUserLevel(r, msg.user),
+			is_self = msg.user && u && u.login === msg.user.login;
 
 		let mod_icons = line.props.showModerationIcons;
 		if ( current_level < 3 )
@@ -856,9 +871,12 @@ export default class Actions extends Module {
 
 				if ( ! act || disp.disabled ||
 					(disp.mod_icons != null && disp.mod_icons !== !!mod_icons) ||
-					(disp.mod != null && disp.mod !== (current_level > msg_level)) ||
+					(disp.mod != null && !(is_self && current_level >= 3) && disp.mod !== (current_level > msg_level)) ||
 					(disp.staff != null && disp.staff !== (u ? !!u.staff : false)) ||
 					(disp.deleted != null && disp.deleted !== !!msg.deleted) )
+					continue;
+
+				if ( is_self && ! act.can_self )
 					continue;
 
 				if ( maybe_call(act.hidden, this, data, msg, r, u, mod_icons, chat_line) )
@@ -956,7 +974,7 @@ export default class Actions extends Module {
 
 			if ( ! act || disp.disabled ||
 				(disp.mod_icons != null && disp.mod_icons !== !!mod_icons) ||
-				(disp.mod != null && disp.mod !== (current_level > msg_level)) ||
+				(disp.mod != null && !(is_self && current_level >= 3) && disp.mod !== (current_level > msg_level)) ||
 				(disp.staff != null && disp.staff !== (current_user ? !!current_user.staff : false)) ||
 				(disp.deleted != null && disp.deleted !== !!msg.deleted) )
 				continue;
@@ -1046,7 +1064,7 @@ export default class Actions extends Module {
 
 			if ( ! act || disp.disabled ||
 				(disp.mod_icons != null && disp.mod_icons !== !!mod_icons) ||
-				(disp.mod != null && disp.mod !== (current_level > msg_level)) ||
+				(disp.mod != null && !(is_self && current_level >= 3) && disp.mod !== (current_level > msg_level)) ||
 				(disp.staff != null && disp.staff !== (current_user ? !!current_user.staff : false)) ||
 				(disp.deleted != null && disp.deleted !== !!msg.deleted) )
 				continue;

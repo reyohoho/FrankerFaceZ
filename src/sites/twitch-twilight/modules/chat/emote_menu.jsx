@@ -471,6 +471,9 @@ export default class EmoteMenu extends Module {
 
 		this.updateEmojiVariables();
 
+		this.chat.context.on('changed:chat.gifs.size', this.updateGifSize, this);
+		this.updateGifSize();
+
 		this.css_tweaks.setVariable('emoji-menu--sheet', `//cdn.frankerfacez.com/static/emoji/images/sheet-twemoji-36.png`);
 		this.css_tweaks.setVariable('emoji-menu--count', 58);
 		this.css_tweaks.setVariable('emoji-menu--size', 36);
@@ -505,6 +508,13 @@ export default class EmoteMenu extends Module {
 					return old_render.call(this);
 				}
 
+				let gif_tier = null;
+				try {
+					gif_tier = this.getTier?.() ?? null;
+				} catch(err) {
+					t.log.error('Error calling native getTier() on the Twitch Emote Menu.', err);
+				}
+
 				return (<t.MenuErrorWrapper visible={this.props.visible}>
 					<t.MenuComponent
 						source={this.props.emotePickerSource}
@@ -517,6 +527,15 @@ export default class EmoteMenu extends Module {
 						loading={this.props.channelData?.loading || this.props.emoteSetsData?.loading}
 						error={this.props.channelData?.error || this.props.emoteSetsData?.error}
 						onClickToken={this.props.onClickToken}
+						giphy_enabled={this.props.giphyIsEnabled}
+						giphy_allowlisted={this.props.giphyIsAllowlisted}
+						giphy_api_key={this.props.giphyApiKey}
+						giphy_rating={this.props.giphyContentRating}
+						giphy_cooldown={this.props.gifCooldownSecondsRemaining}
+						onSelectGif={this.props.onSelectGif}
+						gif_tier={gif_tier}
+						show_gif_dot={this.props.showGifNewItemDot}
+						dismiss_gif_dot={this.props.onDismissGifNewItemDot}
 					/>
 				</t.MenuErrorWrapper>)
 			}
@@ -546,6 +565,10 @@ export default class EmoteMenu extends Module {
 		url("${base}72.png") 2x
 	);
 }`);
+	}
+
+	updateGifSize() {
+		this.css_tweaks.setVariable('gif-size', `${this.chat.context.get('chat.gifs.size')}px`);
 	}
 
 	maybeUpdate() {
@@ -675,6 +698,164 @@ export default class EmoteMenu extends Module {
 					</button>
 					{this.renderToneMenu()}
 				</div>)
+			}
+		}
+
+		this.GifSection = class FFZGifSection extends React.Component {
+			constructor(props) {
+				super(props);
+				this.state = { query: props.query || '', results: [], loading: false, loadingMore: false, offset: 0, total: 0, cooldown: props.cooldown || 0, unavailable: false };
+			}
+
+			buildURL(query, offset) {
+				const valid_ratings = ['g', 'pg'],
+				raw = (this.props.rating || '').toLowerCase(),
+				rating = valid_ratings.includes(raw) ? raw : 'g';
+
+				return query 
+				? `https://api.giphy.com/v1/gifs/search?api_key=${this.props.apiKey}&q=${encodeURIComponent(query)}&rating=${rating}&limit=50&offset=${offset}`
+				: `https://api.giphy.com/v1/gifs/trending?api_key=${this.props.apiKey}&rating=${rating}&limit=50&offset=${offset}`;
+			}
+
+			handleQueryChange(value) {
+				clearTimeout(this._debounce);
+				this._debounce = setTimeout(() => this.search(value), 300);
+			}
+
+			async search(query) {
+				if ( ! this.props.apiKey )
+					return;
+
+				this.setState({ loading: true, offset: 0, query });
+
+				try {
+					const resp = await fetch(this.buildURL(query, 0)),
+					data = await resp.json();
+
+					this.setState({
+						results: data.data || [],
+						total: data.pagination?.total_count || 0,
+						offset: data.data?.length || 0,
+						loading: false
+					});
+				} catch(err) {
+					this.setState({ loading: false });
+				}
+			}
+
+			async loadMore() {
+				if ( this.state.loading || this.state.loadingMore )
+					return;
+
+				if ( this.state.offset >= this.state.total )
+					return;
+
+				this.setState({ loadingMore: true });
+
+				try {
+					const resp = await fetch(this.buildURL(this.state.query, this.state.offset)),
+					data = await resp.json();
+
+					this.setState(prev => ({
+						results: prev.results.concat(data.data || []),
+						offset: prev.offset + (data.data?.length || 0),
+						loadingMore: false
+					}));
+				} catch(err) {
+					this.setState({ loadingMore: false });
+				}
+			}
+
+			componentDidMount() {
+				this.search(this.props.query || '');
+
+				if ( this.state.cooldown > 0 )
+					this.startCooldownTimer();
+			}
+
+			componentWillUnmount() {
+				clearInterval(this._cooldown_timer);
+			}
+
+			startCooldownTimer() {
+				clearInterval(this._cooldown_timer);
+				this._cooldown_timer = setInterval(() => {
+					this.setState(prev => {
+						const next = prev.cooldown - 1;
+						if ( next <= 0 ) {
+							clearInterval(this._cooldown_timer);
+							return { cooldown: 0 };
+						}
+						return { cooldown: next };
+					});
+				}, 1000);
+			}
+
+			async handleSelect(gif) {
+				if ( ! this.props.onSelectGif || this.state.cooldown > 0 )
+					return;
+
+				const media_url = gif.images?.original?.url
+				|| gif.images?.fixed_width?.url
+				|| gif.url;
+
+				let remaining;
+				try {
+					remaining = await this.props.onSelectGif({
+						...gif,
+						url: media_url
+					});
+				} catch(err) {
+					return;
+				}
+
+				if ( remaining === -1 ) {
+					this.setState({ unavailable: true });
+					return;
+				}
+
+				if ( remaining ) {
+					this.setState({ cooldown: remaining });
+					this.startCooldownTimer();
+				}
+			}
+
+			render() {
+				const disabled = this.state.cooldown > 0;
+					
+				return (<div class="tw-pd-1">
+					{disabled && (
+						<div class="ffz--gif-cooldown-notice tw-mg-b-1 tw-c-text-alt-2">
+							{t.i18n.t('emote-menu.gif-cooldown', 'You can send another GIF in {seconds}s.', {seconds: this.state.cooldown})}
+						</div>
+					)}
+					{this.state.unavailable && (
+						<div class="ffz--gif-cooldown-notice tw-mg-b-1 tw-c-text-alt-2">
+							{t.i18n.t('emote-menu.gif-unavailable', 'GIFs are temporarily unavailable.')}
+						</div>
+					)}
+					{this.state.loading && (
+						<div class="tw-align-center tw-pd-1">
+							{t.i18n.t('emote-menu.gif-loading', 'Loading...')}
+						</div>
+					)}
+					{! this.state.loading && this.state.results.length === 0 && (
+						<div class="tw-align-center tw-pd-1">
+							{t.i18n.t('emote-menu.gif-empty', 'No GIFs found.')}
+						</div>
+					)}
+					<div class="ffz--gif-picker-grid">
+						{this.state.results.map(gif => (
+							<button
+								key={gif.id}
+								class={disabled ? 'ffz--gif-picker-item--disabled' : ''}
+								onClick={() => this.handleSelect(gif)}
+							>
+								<img src={gif.images.fixed_width_small.url} alt={gif.title} />
+							</button>
+						))}
+					</div>
+				</div>);
 			}
 		}
 
@@ -1248,6 +1429,7 @@ export default class EmoteMenu extends Module {
 				//this.clickRefresh = this.clickRefresh.bind(this);
 				this.handleFilterChange = this.handleFilterChange.bind(this);
 				this.handleKeyDown = this.handleKeyDown.bind(this);
+				this.handleTabScroll = this.handleTabScroll.bind(this);
 				this.toggleVisibilityControl = this.toggleVisibilityControl.bind(this);
 			}
 
@@ -1365,6 +1547,8 @@ export default class EmoteMenu extends Module {
 				t.chat.context.on('changed:chat.emote-menu.clear-search', this.updateSettingState, this);
 				t.chat.context.on('changed:chat.emote-menu.tall', this.updateSettingState, this);
 
+				this.maybeDismissGifDot();
+
 				window.ffz_menu = this;
 			}
 
@@ -1397,6 +1581,19 @@ export default class EmoteMenu extends Module {
 					clearSearch: t.chat.context.get('chat.emote-menu.clear-search'),
 					tall: t.chat.context.get('chat.emote-menu.tall')
 				});
+			}
+
+			maybeDismissGifDot() {
+				if ( ! this.props.show_gif_dot || this._dismissedGifDot )
+					return;
+
+				this._dismissedGifDot = true;
+
+				try {
+					this.props.dismiss_gif_dot?.();
+				} catch(err) {
+					t.log.error('Error calling native onDismissGifNewItemDot().', err);
+				}
 			}
 
 			seeEffects() {
@@ -1591,7 +1788,11 @@ export default class EmoteMenu extends Module {
 			}
 
 			handleFilterChange(event) {
-				this.setState(this.filterState(event.target.value, this.state));
+				const value = event.target.value;
+				this.setState(this.filterState(value, this.state));
+
+				if ( this.state.tab === 'gif' && this.gifSection )
+					this.gifSection.handleQueryChange(value);
 			}
 
 			handleKeyDown(event) {
@@ -1602,6 +1803,17 @@ export default class EmoteMenu extends Module {
 					return;
 
 				event.preventDefault();
+			}
+
+			handleTabScroll(event) {
+				if ( this.state.tab !== 'gif' || ! this.gifSection )
+					return;
+
+				const el = event.currentTarget,
+				remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+
+				if ( remaining < 200 )
+					this.gifSection.loadMore();
 			}
 
 			loadData(force = false, props, state) {
@@ -2531,6 +2743,7 @@ export default class EmoteMenu extends Module {
 
 				state.has_channel_tab = channel.length > 0;
 				state.has_effect_tab = effects.length > 0;
+				state.has_gif_tab = !!(props.giphy_enabled && props.giphy_allowlisted && props.gif_tier >= 2 && Array.isArray(products) && products.some(p => p?.hasGifs));
 				state.hasNewEffects = effects.length > 0 && has_new_effects;
 				state.unlockedEffects = unlocked_effects;
 
@@ -2722,10 +2935,13 @@ export default class EmoteMenu extends Module {
 						this.props.user_id !== old_props.user_id ||
 						this.props.channel_id !== old_props.channel_id ||
 						this.props.loading !== old_props.loading ||
-						this.props.error !== old_props.error ) {
+						this.props.error !== old_props.error ||
+						this.props.gif_tier !== old_props.gif_tier ) {
 					t.log.debug('Updating emote menu data. cd', cd_diff, ', ed', ed_diff);
 					this.rebuildData();
 				}
+
+				this.maybeDismissGifDot();
 			}
 
 			renderError() {
@@ -2781,7 +2997,7 @@ export default class EmoteMenu extends Module {
 				if ( ! loading )
 					this.loadedOnce = true;
 
-				let tab, sets, is_emoji, is_favs, is_effect;
+				let tab, sets, is_emoji, is_favs, is_effect, is_gif;
 
 				if ( no_tabs ) {
 					sets = [
@@ -2794,12 +3010,13 @@ export default class EmoteMenu extends Module {
 
 				} else {
 					tab = this.state.tab || t.chat.context.get('chat.emote-menu.default-tab');
-					if ( (tab === 'effect' && ! this.state.has_effect_tab) || (tab === 'channel' && ! this.state.has_channel_tab) || (tab === 'emoji' && ! this.state.has_emoji_tab) )
+					if ( (tab === 'effect' && ! this.state.has_effect_tab) || (tab === 'channel' && ! this.state.has_channel_tab) || (tab === 'emoji' && ! this.state.has_emoji_tab) || (tab === 'gif' && ! this.state.has_gif_tab) )
 						tab = 'all';
 
 					is_emoji = tab === 'emoji';
 					is_favs = tab === 'fav';
 					is_effect = tab === 'effect';
+					is_gif = tab === 'gif';
 
 					switch(tab) {
 						case 'fav':
@@ -2836,29 +3053,43 @@ export default class EmoteMenu extends Module {
 									<div
 										ref={this.saveScrollRef}
 										class={`emote-picker__tab-content${whisper ? '-whisper' : ''} tw-full-width ffz-emote-menu--scroll-area`}
+										onScroll={this.handleTabScroll}
 									>
-										{loading && this.renderLoading()}
-										{!loading && sets && sets.map((data,idx) => data && (! visibility || (! data.emoji && ! data.is_favorites)) && createElement(
-											data.emoji ? t.EmojiSection : t.MenuSection,
-											{
-												key: data.key,
-												idx,
-												data,
-												ffz_sub_data: this.state.ffz_sub_data,
-												emote_modifiers: this.state.emote_modifiers,
-												animated: this.state.animated,
-												combineTabs: this.state.combineTabs,
-												showHeading: this.state.showHeading,
-												filtered: this.state.filtered,
-												visibility_control: visibility,
-												onClickToken: this.props.onClickToken,
-												addSection: this.addSection,
-												removeSection: this.removeSection,
-												startObserving: this.startObserving,
-												stopObserving: this.stopObserving
-											}
-										))}
-										{! loading && (! sets || ! sets.length) && this.renderEmpty()}
+										{tab === 'gif' ? (
+											<t.GifSection
+												ref={r => this.gifSection = r}
+												apiKey={this.props.giphy_api_key}
+												rating={this.props.giphy_rating}
+												cooldown={this.props.giphy_cooldown}
+												query={this.state.filter}
+												onSelectGif={this.props.onSelectGif}
+											/>
+										) : (
+											<>
+												{loading && this.renderLoading()}
+												{!loading && sets && sets.map((data,idx) => data && (! visibility || (! data.emoji && ! data.is_favorites)) && createElement(
+													data.emoji ? t.EmojiSection : t.MenuSection,
+													{
+														key: data.key,
+														idx,
+														data,
+														ffz_sub_data: this.state.ffz_sub_data,
+														emote_modifiers: this.state.emote_modifiers,
+														animated: this.state.animated,
+														combineTabs: this.state.combineTabs,
+														showHeading: this.state.showHeading,
+														filtered: this.state.filtered,
+														visibility_control: visibility,
+														onClickToken: this.props.onClickToken,
+														addSection: this.addSection,
+														removeSection: this.removeSection,
+														startObserving: this.startObserving,
+														stopObserving: this.stopObserving
+													}
+												))}
+												{!loading && (! sets || ! sets.length) && this.renderEmpty()}
+											</>
+										)}
 									</div>
 									{(! loading && this.state.quickNav && ! is_favs) && (<div class={`emote-picker__nav_content${whisper ? '-whisper' : ''} tw-block tw-border-radius-none tw-c-background-alt-2`}>
 										<div
@@ -2921,6 +3152,8 @@ export default class EmoteMenu extends Module {
 												type="text"
 												class="tw-block tw-border-radius-medium ffz-font-size-6 tw-full-width ffz-input tw-pd-x-1 tw-pd-y-05"
 												placeholder={
+													is_gif ?
+														t.i18n.t('emote-menu.search-gifs', 'Search GIPHY') :
 													is_emoji ?
 														t.i18n.t('emote-menu.search-emoji', 'Search for Emoji') :
 														t.i18n.t('emote-menu.search', 'Search for Emotes')
@@ -3030,6 +3263,20 @@ export default class EmoteMenu extends Module {
 												</div>
 											</button>
 										</div>}
+										{this.state.has_gif_tab && <div class={`emote-picker-tab-item${tab === 'gif' ? ' emote-picker-tab-item--active' : ''} tw-relative`}>
+											<button
+												class={`ffz-tooltip tw-block tw-full-width ffz-interactable ffz-interactable--hover-enabled ffz-interactable--default tw-interactive${tab === 'gif' ? ' ffz-interactable--selected' : ''}`}
+												id="emote-picker__gif"
+												data-tab="gif"
+												data-tooltip-type="html"
+												data-title={t.i18n.t('emote-menu.gifs', 'GIFs')}
+												onClick={this.clickTab}
+											>
+												<div class="tw-inline-flex tw-pd-x-1 tw-pd-y-05 ffz-font-size-4">
+													<figure class="ffz-i-keyboard" />
+												</div>
+											</button>
+										</div>}
 										<div class="tw-flex-grow-1" />
 										<div class="emote-picker-tab-item tw-relative">
 											<button
@@ -3127,7 +3374,7 @@ export default class EmoteMenu extends Module {
 	async getFFZSubData() {
 		const me = this.resolve('site').getUser();
 		if ( ! me )
-			return null;
+			return {error: true};
 
 		const token = await this.resolve('socket').getBareAPIToken();
 		if ( ! token )
