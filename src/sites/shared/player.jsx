@@ -498,7 +498,7 @@ export default class PlayerBase extends Module {
 			});
 
 		this.settings.add('player.volume-scroll-steps', {
-			default: 0.1,
+			default: 0.01,
 			ui: {
 				path: 'Player > General >> Volume',
 				title: 'Volume scroll amount',
