@@ -21,3 +21,6 @@ export const RTE_LIVE_REWIND_MIGRATION_FLAG = 'RTE-FFZ:live-rewind-migration-v1'
 
 /** Ensures reyohoho-viewer-card is present in addons.enabled for existing installs. */
 export const RTE_VIEWER_CARD_MIGRATION_FLAG = 'RTE-FFZ:viewer-card-migration-v1';
+
+/** Ensures reyohoho-tweaks is present in addons.enabled for existing installs. */
+export const RTE_TWEAKS_MIGRATION_FLAG = 'RTE-FFZ:tweaks-migration-v1';

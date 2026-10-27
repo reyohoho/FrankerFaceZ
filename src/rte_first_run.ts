@@ -19,11 +19,13 @@ import {
 	FFZ_LS_PREFIX,
 	RTE_FIRST_RUN_FLAG,
 	RTE_LIVE_REWIND_MIGRATION_FLAG,
+	RTE_TWEAKS_MIGRATION_FLAG,
 	RTE_VIEWER_CARD_MIGRATION_FLAG
 } from './utilities/rte_storage_constants';
 
 const LIVE_REWIND_ADDON_ID = 'reyohoho-live-rewind';
 const VIEWER_CARD_ADDON_ID = 'reyohoho-viewer-card';
+const TWEAKS_ADDON_ID = 'reyohoho-tweaks';
 
 const PROFILE_PREFIX = 'p:0:';
 
@@ -152,6 +154,7 @@ const DEFAULTS: DefaultEntry[] = [
 			'reyohoho-ascii-art-font',
 			'reyohoho-anon-chat',
 			'reyohoho-viewer-card',
+			'reyohoho-tweaks',
 			'ffzap-bttv',
 			'7tv-emotes',
 			'ffzap-core',
@@ -405,8 +408,20 @@ export function migrateLiveRewindAddon(): void {
  * Safe to call multiple times — it short-circuits after the first run.
  */
 export function migrateViewerCardAddon(): void {
+	enableAddonOnce(VIEWER_CARD_ADDON_ID, RTE_VIEWER_CARD_MIGRATION_FLAG);
+}
+
+/**
+ * Enable the tweaks add-on for installs that predate its introduction.
+ * Safe to call multiple times — it short-circuits after the first run.
+ */
+export function migrateTweaksAddon(): void {
+	enableAddonOnce(TWEAKS_ADDON_ID, RTE_TWEAKS_MIGRATION_FLAG);
+}
+
+function enableAddonOnce(addonId: string, flag: string): void {
 	try {
-		if (localStorage.getItem(RTE_VIEWER_CARD_MIGRATION_FLAG) != null)
+		if (localStorage.getItem(flag) != null)
 			return;
 	} catch {
 		return;
@@ -419,16 +434,16 @@ export function migrateViewerCardAddon(): void {
 		const parsed = raw ? JSON.parse(raw) : null;
 		const list = Array.isArray(parsed) ? parsed.slice() : [];
 
-		if (!list.includes(VIEWER_CARD_ADDON_ID))
-			list.push(VIEWER_CARD_ADDON_ID);
+		if (!list.includes(addonId))
+			list.push(addonId);
 
 		localStorage.setItem(key, JSON.stringify(list));
 
-		localStorage.setItem(RTE_VIEWER_CARD_MIGRATION_FLAG, JSON.stringify({
+		localStorage.setItem(flag, JSON.stringify({
 			at: new Date().toISOString()
 		}));
 	} catch (err) {
-		console.warn('[RTE] Failed to migrate viewer-card add-on enablement:', err);
+		console.warn(`[RTE] Failed to migrate ${addonId} add-on enablement:`, err);
 	}
 }
 

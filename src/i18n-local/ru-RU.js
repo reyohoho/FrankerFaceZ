@@ -231,6 +231,67 @@ export default {
 	'addon.reyohoho-live-rewind.subscribeLink': 'Оформить подписку',
 	'home.rte.sub.benefits.rewind': 'Перемотка live-стрима через запись VOD.',
 
+	// ─── reyohoho-tweaks ───────────────────────────────────────────────────
+	'setting.add_ons.re_yohoho_tweaks': 'ReYohoho Твики',
+	'setting.add_ons.re_yohoho_tweaks.ambilight': 'Ambilight',
+	'setting.add_ons.re_yohoho_tweaks.live_catch_up': 'Догон эфира',
+	'setting.add_ons.re_yohoho_tweaks.vods': 'Записи',
+	'setting.add_ons.re_yohoho_tweaks.chat': 'Чат',
+	'setting.add_ons.re_yohoho_tweaks.channel': 'Канал',
+	'setting.add_ons.re_yohoho_tweaks.sidebar': 'Боковая панель',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.enabled': 'Ambilight',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.enabled.description':
+		'Подсвечивать область вокруг плеера цветами стрима. Нужны тёмная тема Twitch и аппаратное ускорение (WebGL 2).',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.button': 'Показывать кнопку Ambilight в плеере',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.button.description':
+		'Клик включает и выключает подсветку, ПКМ открывает эти настройки.',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.brightness': 'Яркость, %',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.size': 'Размер свечения, %',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.blur': 'Размытие, px',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.saturation': 'Насыщенность, %',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.smoothness': 'Плавность смены цветов, %',
+	'setting.entry.addon.reyohoho-tweaks.ambilight.fill-bars':
+		'Подсвечивать чёрные полосы вокруг видео в театральном режиме',
+	'addon.reyohoho-tweaks.ambilight.button': 'Подсветка вокруг плеера (Ambilight)',
+	'addon.reyohoho-tweaks.ambilight.tooltip': 'Ambilight (ПКМ — настройки)',
+	'addon.reyohoho-tweaks.ambilight.light-theme': 'Подсветка работает только в тёмной теме Twitch',
+	'addon.reyohoho-tweaks.ambilight.too-slow':
+		'Подсветка выключена до перезагрузки страницы: с ней стрим терял кадры. Проверьте, что в настройках браузера включено аппаратное ускорение',
+	'addon.reyohoho-tweaks.ambilight.unsupported':
+		'Подсветке нужно аппаратное ускорение (WebGL 2), а в этом браузере оно выключено или недоступно',
+	'setting.entry.addon.reyohoho-tweaks.live-catchup.enabled': 'Догон эфира',
+	'setting.entry.addon.reyohoho-tweaks.live-catchup.enabled.description':
+		'Слегка ускорять трансляцию, пока задержка не снизится до цели. После подвисаний делает паузу, чтобы плеер успел набрать запас.',
+	'setting.entry.addon.reyohoho-tweaks.live-catchup.target': 'Желаемая задержка, секунд',
+	'setting.entry.addon.reyohoho-tweaks.live-catchup.rate': 'Скорость догона',
+	'setting.entry.addon.reyohoho-tweaks.live-catchup.rate.description':
+		'Выше 1.25 может быть заметно или нестабильно.',
+	'setting.entry.addon.reyohoho-tweaks.vod-real-time': 'Показывать реальное время эфира на записях',
+	'setting.entry.addon.reyohoho-tweaks.vod-real-time.description':
+		'Показывать настоящие дату и время эфира рядом с таймкодом при просмотре записи.',
+	'addon.reyohoho-tweaks.vod-real-time.tooltip': 'Реальное время эфира в этот момент (по вашим часам)',
+	'setting.entry.addon.reyohoho-tweaks.chat-resize': 'Менять ширину чата перетаскиванием края',
+	'setting.entry.addon.reyohoho-tweaks.chat-resize.description':
+		'Потяните край колонки чата у плеера. Двойной щелчок по краю — сброс. Меняет настройку Чат > Оформление > Ширина.',
+	'addon.reyohoho-tweaks.chat-resize.handle': 'Потяните, чтобы изменить ширину чата; двойной щелчок — сброс',
+	'setting.entry.addon.reyohoho-tweaks.hide.ai-summary': 'Скрывать ИИ-сводки стрима',
+	'setting.entry.addon.reyohoho-tweaks.hide.ai-summary.description':
+		'Скрывать сгенерированные ИИ сводки по ходу стрима, которые Twitch показывает в чате.',
+	'setting.entry.addon.reyohoho-tweaks.hide.sub-upgrade': 'Скрывать кнопку «Повысить уровень подписки»',
+	'setting.entry.addon.reyohoho-tweaks.hide.notifications': 'Скрывать колокольчик уведомлений канала',
+	'setting.entry.addon.reyohoho-tweaks.hide.bits-balance': 'Скрывать баланс Bits под полем ввода чата',
+	'setting.entry.addon.reyohoho-tweaks.hide.bits-offer': 'Скрывать кнопку «Bits» со скидкой',
+	'setting.entry.addon.reyohoho-tweaks.sidebar.sort-by-viewers': 'Сортировать отслеживаемые каналы по зрителям',
+	'setting.entry.addon.reyohoho-tweaks.sidebar.sort-by-viewers.description':
+		'Переключать список отслеживаемых каналов на сортировку «Зрители (по убыванию)».',
+
+	// ─── reyohoho-chat-commands: /screenshot ───────────────────────────────
+	'addon.reyohoho-chat-commands.commands.screenshot.description':
+		'Использование: «/screenshot» - сохранить кадр стрима в PNG',
+	'addon.reyohoho-chat-commands.notice.screenshot-not-playing':
+		'Ошибка: не удалось сделать скриншот, стрим воспроизводится?',
+	'addon.reyohoho-chat-commands.notice.screenshot-failed': 'Ошибка: не удалось сделать скриншот.',
+
 	// ─── chat.filtering.block-digit-only-messages ──────────────────────────
 	'setting.entry.chat.filtering.block-digit-only-messages':
 		'Скрывать сообщения, состоящие только из цифр',
