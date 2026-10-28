@@ -627,6 +627,21 @@
 			margin: 0 !important;
 			transform: translate(-50%, -50%);
 		}
+
+		// An overlay with effects of its own (prefix modifiers before a zero-width emote) is a nested modified
+		// emote: center its wrapper instead, and let the image inside flow and take only the effect transforms
+		.modified-emote {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			margin: 0;
+			transform: translate(-50%, -50%);
+
+			& > .chat-line__message--emote {
+				position: static !important;
+				transform: var(--ffz-effect-transforms, none);
+			}
+		}
 	}
 }
 

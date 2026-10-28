@@ -1350,6 +1350,27 @@ const render_emote = (token, createElement, wrapped) => {
 }
 
 
+// Removes the prefix modifier tokens (and the spaces between them) at the end of out, when they directly follow an
+// emote they could go on. Returns that emote and the modifiers, or null leaving out untouched.
+function popPrefixModifiers(out) {
+	let i = out.length;
+	while ( i-- ) {
+		const token = out[i];
+		if ( ! ((token.type === 'emote' && token.mod && token.mod_prefix) || (token.type === 'text' && token.text === ' ')) )
+			break;
+	}
+
+	const base = out[i];
+	if ( ! base || base.type !== 'emote' || base.mod || ! base.modifiers )
+		return null;
+
+	return {
+		base,
+		prefixes: out.splice(i + 1).filter(token => token.type === 'emote')
+	};
+}
+
+
 export const AddonEmotes = {
 	type: 'emote',
 	priority: 10,
@@ -1921,9 +1942,22 @@ export const AddonEmotes = {
 				if ( has(emotes, segment) ) {
 					emote = emotes[segment];
 
+					let found;
+
 					// Is this emote a modifier?
 					if ( emote.modifier && emote.modifier_prefix )
 						had_prefix_mods = true;
+					// A zero-width emote right after prefix modifiers (Base h! ZeroWidth): the modifiers apply to the
+					// overlay itself, which still goes on top of the emote before them
+					else if ( emote.modifier && last_token?.mod_prefix && (!text.length || (text.length === 1 && text[0] === '')) && (found = popPrefixModifiers(out)) ) {
+						const overlay = Object.assign({big, anim}, emote.token, {modifiers: found.prefixes, modifier_flags: 0});
+						for(const mod of found.prefixes)
+							overlay.modifier_flags |= mod.source_modifier_flags;
+
+						found.base.modifiers.push(overlay);
+						last_token = found.base;
+						continue;
+					}
 					else if ( emote.modifier && last_token && last_token.modifiers && (!text.length || (text.length === 1 && text[0] === '')) ) {
 						if ( last_token.modifiers.indexOf(emote.token) === -1 ) {
 							if ( emote.modifier_flags ) {
