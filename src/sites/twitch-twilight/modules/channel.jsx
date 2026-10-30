@@ -261,7 +261,9 @@ export default class Channel extends Module {
 		if ( ! this.settings.get('channel.auto-click-chat') || this.router.current_name !== 'user-home' )
 			return;
 
-		if ( this.router.old_location === this.router.location )
+		// Twitch pushes the channel URL without a view and only then replaces it with
+		// the Home view, so only skip when the user switched views on the same page.
+		if ( this.router.old_location === this.router.location && this.router.old_state?.channelView )
 			return;
 
 		this.router.replace(this.router.location, {channelView: 'Watch'});
