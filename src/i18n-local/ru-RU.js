@@ -292,6 +292,10 @@ export default {
 		'Ошибка: не удалось сделать скриншот, стрим воспроизводится?',
 	'addon.reyohoho-chat-commands.notice.screenshot-failed': 'Ошибка: не удалось сделать скриншот.',
 
+	// ─── chat.banners.pinned-message-hide-delayed ──────────────────────────
+	'setting.entry.chat.banners.pinned-message-hide-delayed':
+		'Скрывать закреплённые сообщения через 30 секунд после появления.',
+
 	// ─── chat.filtering.block-digit-only-messages ──────────────────────────
 	'setting.entry.chat.filtering.block-digit-only-messages':
 		'Скрывать сообщения, состоящие только из цифр',

@@ -194,6 +194,8 @@ const CALLOUT_TYPES = {
 const UNBLOCKABLE_CALLOUTS = [];
 
 
+const PINNED_HIDE_DELAY = 30 * 1000;
+
 const MISBEHAVING_EVENTS = [
 	'onBadgesUpdatedEvent',
 ];
@@ -362,6 +364,7 @@ export default class ChatHook extends Module {
 		);
 
 		this.joined_raids = new Set;
+		this.pinned_expired = new Map;
 
 		this.RaidController = this.fine.define(
 			'raid-controller',
@@ -688,6 +691,15 @@ export default class ChatHook extends Module {
 			ui: {
 				path: 'Chat > Appearance >> Community',
 				title: 'Allow Pinned Messages to be displayed in chat.',
+				component: 'setting-check-box'
+			}
+		});
+
+		this.settings.add('chat.banners.pinned-message-hide-delayed', {
+			default: false,
+			ui: {
+				path: 'Chat > Appearance >> Community',
+				title: 'Hide Pinned Messages 30 seconds after they appear.',
 				component: 'setting-check-box'
 			}
 		});
@@ -1350,6 +1362,7 @@ export default class ChatHook extends Module {
 		this.chat.context.on('changed:chat.banners.prediction', this.cleanHighlights, this);
 		this.chat.context.on('changed:chat.banners.drops', this.cleanHighlights, this);
 		this.chat.context.on('changed:chat.banners.pinned-message', this.cleanHighlights, this);
+		this.chat.context.on('changed:chat.banners.pinned-message-hide-delayed', this.cleanHighlights, this);
 		this.chat.context.on('changed:chat.banners.hide-appleplus', this.cleanHighlights, this);
 		this.chat.context.on('changed:chat.banners.shared-chat', this.cleanHighlights, this);
 
@@ -2455,6 +2468,22 @@ export default class ChatHook extends Module {
 		this.css_tweaks.toggle('bigger-emote-jail', enabled && bigger);
 	}
 
+	// Kept per pin so one that Twitch brings back after a chat remount does not get a new delay.
+	isPinnedMessageExpired(id) {
+		if ( ! this.chat.context.get('chat.banners.pinned-message-hide-delayed') )
+			return false;
+
+		if ( ! this.pinned_expired.has(id) ) {
+			this.pinned_expired.set(id, false);
+			setTimeout(() => {
+				this.pinned_expired.set(id, true);
+				this.cleanHighlights();
+			}, PINNED_HIDE_DELAY);
+		}
+
+		return this.pinned_expired.get(id);
+	}
+
 	cleanHighlights() {
 		const types = {
 			'community_gift': this.chat.context.get('chat.subs.gift-banner'),
@@ -2476,7 +2505,7 @@ export default class ChatHook extends Module {
 				continue;
 
 			const type = entry.event.type;
-			if ( type && has(types, type) && ! types[type] ) {
+			if ( type && has(types, type) && (! types[type] || (type === 'pinned_chat' && this.isPinnedMessageExpired(entry.id))) ) {
 				// Attempt to allow Golden Kappa hype trains?
 				//if ( type === 'hype_train' && entry.event.typeDetails === '0' && this.chat.context.get('chat.banners.kappa-train') )
 				//	continue;
