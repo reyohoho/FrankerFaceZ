@@ -3,7 +3,7 @@
 // Same hotlink‑sensitive hosts as `reyohoho-twitch-extension/src/utils/link_preview.js`
 // (+ kappa.lol, which RTE always wraps when a CDN mirror is configured;
 // + i.imgur.com — direct CDN URLs with query params / webp often break as hotlinks in embeds).
-const NEED_PROXY_HOSTS = /(?:cdn\.discordapp\.com|media\.discordapp\.net|images-ext-\d+\.discordapp\.net|img\.youtube\.com|i\d*\.ytimg\.com|i\.ibb\.co|cdn\.7tv\.app|kappa\.lol|i\.imgur\.com)/i;
+const NEED_PROXY_HOSTS = /(?:cdn\.discordapp\.com|media\.discordapp\.net|images-ext-\d+\.discordapp\.net|img\.youtube\.com|i\d*\.ytimg\.com|i\.ibb\.co|s\d+\.gifyu\.com|cdn\.7tv\.app|kappa\.lol|i\.imgur\.com)/i;
 
 const ALREADY_RTE_MIRROR = /\.rte\.net\.ru/i;
 
