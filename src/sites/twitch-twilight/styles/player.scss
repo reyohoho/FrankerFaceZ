@@ -10,6 +10,12 @@
 	}
 }
 
+.player-controls__right-control-group .ffz--player-meta-tray {
+	position: static;
+	align-self: center;
+	margin: 0 0.5rem 0 0;
+}
+
 .player-controls-bottom .player-tip {
 	top: auto;
 	bottom: 4rem;

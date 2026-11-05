@@ -129,6 +129,25 @@ export default class Player extends PlayerBase {
 			changed: val => this.css_tweaks.toggle('theatre-metadata', val)
 		});
 
+		this.settings.add('player.theatre.latency', {
+			default: true,
+			requires: ['layout.is-theater-mode'],
+			process(ctx, val) {
+				return ctx.get('layout.is-theater-mode') ? val : false;
+			},
+			ui: {
+				path: 'Player > General >> Theatre Mode',
+				title: 'Show the stream delay in the player controls.',
+				description: 'Requires Playback Statistics to be enabled in Channel > Metadata.',
+				component: 'setting-check-box'
+			},
+
+			changed: () => {
+				for(const inst of this.Player.instances)
+					this._updateMetadata(inst);
+			}
+		});
+
 		this.settings.add('player.theatre.auto-enter', {
 			default: false,
 			ui: {
@@ -176,6 +195,19 @@ export default class Player extends PlayerBase {
 		});*/
 	}
 
+
+	wantsMetadata() {
+		return this.settings.get('player.theatre.latency');
+	}
+
+	updateMetadata(inst, keys) {
+		const cont = inst._ffz_cont;
+		if ( ! cont || ! document.contains(cont) || (keys && ! keys.includes('player-stats')) )
+			return;
+
+		const timers = inst._ffz_meta_timers = inst._ffz_meta_timers || {};
+		this.metadata.renderLegacy('player-stats', {}, cont, timers, key => this.updateMetadata(inst, key));
+	}
 
 	async onEnable() {
 		await super.onEnable();
