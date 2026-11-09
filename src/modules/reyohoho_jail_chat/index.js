@@ -15,6 +15,22 @@ const MAX_RECONNECT_DELAY = 30000;
 // The jail relay always lives on this starege host.
 const RELAY_WS_BASE = 'wss://ext.rte.net.ru:8443';
 
+// Split relayed text into Twitch message parts so URLs render as links
+// (part type 5) instead of plain text.
+const JAIL_URL_RE = /https?:\/\/[^\s]+?(?=[.,!?)»]*(?:\s|$))/g;
+
+function jailMessageParts(text) {
+	const parts = [];
+	let last = 0;
+	for (const match of text.matchAll(JAIL_URL_RE)) {
+		if (match.index > last) parts.push({type: 0, content: text.slice(last, match.index)});
+		parts.push({type: 5, content: {displayText: match[0], url: match[0]}});
+		last = match.index + match[0].length;
+	}
+	if (last < text.length) parts.push({type: 0, content: text.slice(last)});
+	return parts;
+}
+
 export default class ReyohohoJailChat extends Module {
 
 	constructor(...args) {
@@ -234,7 +250,7 @@ export default class ReyohohoJailChat extends Module {
 			// makes Twitch's renderContent crash on `.some()` of undefined.
 			message: text,
 			messageBody: text,
-			messageParts: [{type: 0, content: text}],
+			messageParts: jailMessageParts(text),
 			user: {
 				// Keep the real Twitch id so the RTE badge + 7TV paint (both keyed
 				// on the twitch id) still resolve, and keep the color so the name
