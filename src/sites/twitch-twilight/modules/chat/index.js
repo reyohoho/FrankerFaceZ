@@ -2512,8 +2512,10 @@ export default class ChatHook extends Module {
 
 				this.log.info('Removing community highlight:', type, '#', entry.id);
 				this.community_dispatch({
-					// Predictions cannot be removed, only hidden.
-					type: type === 'prediction'
+					// Predictions cannot be removed, only hidden. Pinned messages are
+					// hidden like Twitch's own "Hide for yourself" button, which also
+					// drops the space Twitch reserves for them above the chat.
+					type: type === 'prediction' || type === 'pinned_chat'
 						? 'hide-highlight'
 						: 'remove-highlight',
 					id: entry.id

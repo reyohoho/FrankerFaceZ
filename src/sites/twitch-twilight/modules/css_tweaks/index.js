@@ -26,7 +26,8 @@ const CLASSES = {
 	'side-rerun-channels': '.side-nav .ffz--side-nav-card-rerun',
 	'modview-hide-info': '.modview-player-widget__hide-stream-info',
 
-	'community-highlights': '.community-highlight-stack__card',
+	// Pinned messages are controlled by the chat.banners.pinned-message settings instead.
+	'community-highlights': '.community-highlight-stack__card:not(:has(.pinned-chat__highlight-card))',
 	'elevate-your-message': '.chat-input__input-icons button[aria-label="ElevatedMessage"]',
 
 	'prime-offers': '.top-nav__prime',
