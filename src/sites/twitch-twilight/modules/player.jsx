@@ -13,6 +13,12 @@ export const PLAYER_ROUTES = [
 	'mod-view', 'user-home'
 ];
 
+// Metadata shown in the player controls in Theatre Mode, with the setting that enables each.
+const THEATRE_METADATA = [
+	['uptime', 'player.theatre.uptime'],
+	['player-stats', 'player.theatre.latency']
+];
+
 /*const HAS_PITCH = (() => {
 	const el = createElement('video');
 	return el.preservesPitch != null || el.mozPreservesPitch != null
@@ -148,6 +154,25 @@ export default class Player extends PlayerBase {
 			}
 		});
 
+		this.settings.add('player.theatre.uptime', {
+			default: true,
+			requires: ['layout.is-theater-mode'],
+			process(ctx, val) {
+				return ctx.get('layout.is-theater-mode') ? val : false;
+			},
+			ui: {
+				path: 'Player > General >> Theatre Mode',
+				title: 'Show the stream uptime in the player controls.',
+				description: 'Requires Uptime to be enabled in Channel > Metadata.',
+				component: 'setting-check-box'
+			},
+
+			changed: () => {
+				for(const inst of this.Player.instances)
+					this._updateMetadata(inst);
+			}
+		});
+
 		this.settings.add('player.theatre.auto-enter', {
 			default: false,
 			ui: {
@@ -197,16 +222,36 @@ export default class Player extends PlayerBase {
 
 
 	wantsMetadata() {
-		return this.settings.get('player.theatre.latency');
+		return this.settings.get('player.theatre.latency') || this.settings.get('player.theatre.uptime');
 	}
 
 	updateMetadata(inst, keys) {
 		const cont = inst._ffz_cont;
-		if ( ! cont || ! document.contains(cont) || (keys && ! keys.includes('player-stats')) )
+		if ( ! cont || ! document.contains(cont) )
 			return;
 
-		const timers = inst._ffz_meta_timers = inst._ffz_meta_timers || {};
-		this.metadata.renderLegacy('player-stats', {}, cont, timers, key => this.updateMetadata(inst, key));
+		const timers = inst._ffz_meta_timers = inst._ffz_meta_timers || {},
+			user = this.getData()?.props?.data?.user;
+
+		for(const [key, setting] of THEATRE_METADATA) {
+			if ( keys && ! keys.includes(key) )
+				continue;
+
+			if ( ! this.settings.get(setting) ) {
+				clearTimeout(timers[key]);
+				const el = cont.querySelector(`.ffz-stat[data-key="${key}"]`);
+				el?._ffz_destroy?.();
+				el?.remove();
+				continue;
+			}
+
+			const data = key === 'uptime' ? {
+				channel: {live_since: user?.stream?.createdAt},
+				getBroadcastID: () => user?.id ? this.getBroadcastID(inst, user.id) : null
+			} : {};
+
+			this.metadata.renderLegacy(key, data, cont, timers, k => this.updateMetadata(inst, k));
+		}
 	}
 
 	async onEnable() {

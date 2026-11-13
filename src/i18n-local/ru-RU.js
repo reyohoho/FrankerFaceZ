@@ -320,5 +320,9 @@ export default {
 	'setting.entry.player.theatre.latency':
 		'Показывать задержку стрима в панели управления плеером.',
 	'setting.entry.player.theatre.latency.description':
-		'Требуется включённая статистика воспроизведения в разделе «Канал > Метаданные».'
+		'Требуется включённая статистика воспроизведения в разделе «Канал > Метаданные».',
+	'setting.entry.player.theatre.uptime':
+		'Показывать длительность стрима в панели управления плеером.',
+	'setting.entry.player.theatre.uptime.description':
+		'Требуется включённое время в эфире в разделе «Канал > Метаданные».'
 };
