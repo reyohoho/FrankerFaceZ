@@ -447,6 +447,51 @@ function enableAddonOnce(addonId: string, flag: string): void {
 	}
 }
 
+// Provider keys (no LS prefix) of our curated defaults.
+const RTE_DEFAULT_KEYS = new Set(DEFAULTS.map(e => e.global ? e.key : `${PROFILE_PREFIX}${e.key}`));
+const RTE_DEFAULT_ADDONS = DEFAULTS.find(e => e.key === 'addons.enabled')!.value as string[];
+
+const isRteAddon = (id: unknown) => typeof id === 'string' && (id.startsWith('reyohoho-') || RTE_DEFAULT_ADDONS.includes(id));
+const asArray = (value: unknown): unknown[] => Array.isArray(value) ? value : [];
+
+/**
+ * A backup made by original FrankerFaceZ knows nothing about RTE, so restoring
+ * it as-is wipes our defaults and switches off every RTE add-on. For such a
+ * backup we merge instead: FFZ and third-party add-on settings come from the
+ * file, while our curated defaults, `addon.reyohoho-*` settings and the add-ons
+ * we enable by default keep their current values. Keys the file lacks keep
+ * their current values too, so fork-only settings survive.
+ *
+ * Returns `null` for a backup made by RTE-FFZ itself: that one is restored in full.
+ */
+export function mergeForeignBackup(
+	backup: Record<string, unknown>,
+	current: Iterable<[string, unknown]>
+): Record<string, unknown> | null {
+	const backupAddons = asArray(backup['addons.enabled']);
+	if (backupAddons.some(id => typeof id === 'string' && id.startsWith('reyohoho-'))
+		|| Object.keys(backup).some(key => key.includes('addon.reyohoho-')))
+		return null;
+
+	const out: Record<string, unknown> = Object.fromEntries(current);
+	const currentAddons = asArray(out['addons.enabled']);
+	const currentTos = asArray(out['agreed-tos']);
+
+	for (const [key, value] of Object.entries(backup))
+		if (!RTE_DEFAULT_KEYS.has(key) && !key.includes('addon.reyohoho-'))
+			out[key] = value;
+
+	// An absent list lets addons.ts fall back to its defaults, so never write an empty one in its place.
+	if ('addons.enabled' in backup || 'addons.enabled' in out)
+		out['addons.enabled'] = [...new Set([...backupAddons, ...currentAddons.filter(isRteAddon)])];
+
+	const tos = [...new Set([...asArray(backup['agreed-tos']), ...currentTos])];
+	if (tos.length)
+		out['agreed-tos'] = tos;
+
+	return out;
+}
+
 /**
  * Run the one-time migration. Safe to call multiple times — it short-circuits
  * after the first successful execution.

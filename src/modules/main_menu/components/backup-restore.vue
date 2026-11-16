@@ -74,6 +74,7 @@
 
 import {openFile, readFile} from 'utilities/dom';
 import { saveAs } from 'file-saver';
+import { mergeForeignBackup } from 'src/rte_first_run';
 
 export default {
 	props: ['item'],
@@ -166,10 +167,11 @@ export default {
 
 			await provider.awaitReady();
 
+			const values = mergeForeignBackup(data.values, provider.entries()) ?? data.values;
 			provider.clear();
 			let i = 0;
-			for(const key of Object.keys(data.values)) {
-				const val = data.values[key];
+			for(const key of Object.keys(values)) {
+				const val = values[key];
 				provider.set(key, val);
 				provider.emit('changed', key, val, false);
 				i++;
@@ -279,11 +281,12 @@ export default {
 				await provider.clearBlobs();
 
 			// Settings second.
+			const values = mergeForeignBackup(data.values, provider.entries()) ?? data.values;
 			provider.clear();
 			await provider.flush();
 			let i = 0;
-			for(const key of Object.keys(data.values)) {
-				const val = data.values[key];
+			for(const key of Object.keys(values)) {
+				const val = values[key];
 				provider.set(key, val);
 				provider.emit('changed', key, val, false);
 				i++;
