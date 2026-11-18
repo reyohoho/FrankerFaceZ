@@ -270,6 +270,13 @@ export default {
 	'setting.entry.addon.reyohoho-tweaks.vod-real-time.description':
 		'Показывать настоящие дату и время эфира рядом с таймкодом при просмотре записи.',
 	'addon.reyohoho-tweaks.vod-real-time.tooltip': 'Реальное время эфира в этот момент (по вашим часам)',
+	'setting.entry.addon.reyohoho-tweaks.vod-chat-sync': 'Показывать над чатом записи настройку синхронизации',
+	'setting.entry.addon.reyohoho-tweaks.vod-chat-sync.description':
+		'Сдвигать чат записи назад или вперёд на нужное число секунд, если он опережает видео или отстаёт от него. Сдвиг запоминается для каждой записи до перезагрузки страницы.',
+	'addon.reyohoho-tweaks.vod-chat-sync.tooltip':
+		'Синхронизация чата с видео, секунды. Увеличьте, если чат отстаёт от видео, уменьшите, если опережает.',
+	'addon.reyohoho-tweaks.vod-chat-sync.label': 'Синхронизация чата, секунды',
+	'addon.reyohoho-tweaks.vod-chat-sync.unit': 'с',
 	'setting.entry.addon.reyohoho-tweaks.chat-resize': 'Менять ширину чата перетаскиванием края',
 	'setting.entry.addon.reyohoho-tweaks.chat-resize.description':
 		'Потяните край колонки чата у плеера. Двойной щелчок по краю — сброс. Меняет настройку Чат > Оформление > Ширина.',
