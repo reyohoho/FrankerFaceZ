@@ -229,6 +229,7 @@ export default {
 		'**Доступно только подписчикам RTE.** [Оформить подписку](https://ext.rte.net.ru)',
 	'addon.reyohoho-live-rewind.subscribersOnly': 'Доступно только подписчикам RTE.',
 	'addon.reyohoho-live-rewind.subscribeLink': 'Оформить подписку',
+	'addon.reyohoho-live-rewind.vod-chat': 'Чат записи',
 	'home.rte.sub.benefits.rewind': 'Перемотка live-стрима через запись VOD.',
 
 	// ─── reyohoho-tweaks ───────────────────────────────────────────────────
