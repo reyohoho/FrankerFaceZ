@@ -1132,7 +1132,7 @@ export default class Badges extends Module {
 
 			props.className = `ffz-tooltip ffz-badge${content ? ' tw-pd-x-05' : ''}${data.full_size ? ' ffz-full-size' : ''}${data.no_invert ? ' ffz-no-invert' : ''}`;
 			props.key = `${props['data-provider']}-${props['data-badge']}`;
-			props['data-tooltip-type'] = 'badge';
+			props['data-tooltip-type'] = (props['data-provider'] === 'ffz' && this.badges[props['data-badge']]?.tooltip_type) || 'badge';
 			props['data-badge-idx'] = i;
 			//props['data-badge-data'] = JSON.stringify(data.badges);
 
