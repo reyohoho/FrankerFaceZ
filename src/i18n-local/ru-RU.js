@@ -182,6 +182,7 @@ export default {
 	'setting.entry.addon.reyohoho-emotes-proxy.ffz-enabled': 'FFZ',
 	'setting.entry.addon.reyohoho-emotes-proxy.ffz-enabled.description':
 		'Проксировать запросы к FrankerFaceZ API и CDN (cdn.frankerfacez.com, cdn2.frankerfacez.com, api.frankerfacez.com, api2.frankerfacez.com)',
+	'setting.entry.addon.reyohoho-emotes-proxy.lasqamons': 'Показывать бейджи ласкамонов в чате Lasqa',
 	'setting.entry.addon.reyohoho-emotes-proxy.badges': 'Значки ReYohoho',
 	'setting.entry.addon.reyohoho-emotes-proxy.badges.description':
 		'Показывать кастомные значки ReYohoho в чате.\n\n(Видимость каждого значка можно настроить в [Чат >> Значки > Видимость > Дополнения](~chat.badges.tabs.visibility))',
